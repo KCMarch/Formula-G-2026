@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 2026 Season Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;500;600;700;900&display=swap');
+
+:root {
+  --bg: #07070c;
+  --surface: #0f0f18;
+  --surface2: #161622;
+  --border: #242434;
+  --accent: #e8002d;
+  --accent2: #00BFFF;
+  --text: #e4e4f0;
+  --muted: #60607a;
+  --grid: #18182a;
+  --font: 'Source Code Pro', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+header {
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(180deg, #0b0b14 0%, var(--bg) 100%);
+}
+.f1-badge {
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -1px;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 2px 7px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.header-title {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.header-meta {
+  margin-left: auto;
+  text-align: right;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  line-height: 1.7;
+}
+.header-meta strong { color: var(--accent2); font-weight: 600; }
+
+.top-nav {
+  display: flex;
+  padding: 0 28px;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
+}
+.top-tab {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 14px 22px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+  user-select: none;
+}
+.top-tab:hover { color: var(--text); }
+.top-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.category-page { display: none; }
+.category-page.active { display: block; }
+
+.sub-nav {
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  overflow-x: auto;
+}
+
+.sub-tab {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+  user-select: none;
+}
+.sub-tab:hover { color: var(--text); }
+.sub-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+.main { padding: 22px 28px; max-width: 1700px; }
+.sub-panel { display: none; }
+.sub-panel.active { display: block; }
+
+.rounds-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.round-pill {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 3px 9px;
+  border-radius: 2px;
+}
+.round-pill.done { border-color: var(--accent2); color: var(--accent2); }
+.round-pill.next { border-color: var(--accent); color: var(--accent); }
+
+.panel-title {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.panel-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  letter-spacing: 0.3px;
+}
+/* ── CHART SIZING ── */
+:root {
+  --chart-max-w: 1600px;   /* caps all charts on ultrawide */
+  --chart-h-line: 672px;   /* line charts */
+  --chart-h-bar:  608px;   /* bar charts (vertical) */
+  --chart-h-hbar: 480px;   /* horizontal bar (cause) */
+  --chart-h-hbar-xl: 1500px; /* extra-tall hbar for large datasets */
+  --chart-h-pie:  672px;   /* doughnut/pie */
+}
+
+.chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 18px 18px 12px;
+  max-width: var(--chart-max-w);
+}
+.chart-wrap canvas {
+  height: var(--chart-h-line) !important;
+}
+.chart-wrap.bar canvas    { height: var(--chart-h-bar)  !important; }
+.chart-wrap.hbar canvas   { height: var(--chart-h-hbar) !important; }
+.chart-wrap.hbar-xl canvas{ height: var(--chart-h-hbar-xl) !important; }
+.chart-wrap.pie           { max-width: 560px; margin: 0 auto; }
+.chart-wrap.pie canvas    { height: var(--chart-h-pie)  !important; }
+canvas { width: 100% !important; max-width: 100%; }
+
+.legend-wrap {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  user-select: none;
+  transition: color 0.15s;
+}
+.legend-item:hover { color: var(--text); }
+.legend-item.hidden { opacity: 0.3; }
+.legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+.note {
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.heat-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow-x: auto;
+}
+.heat-table {
+  width: auto;
+  border-collapse: collapse;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.heat-table th {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--grid);
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 9px;
+  background: var(--surface2);
+  text-align: center;
+}
+.heat-table th:first-child { text-align:left; min-width:110px; padding-left:12px; }
+.heat-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--grid);
+  border-right: 1px solid var(--grid);
+  text-align: center;
+  font-weight: 600;
+  font-size: 10px;
+  min-width: 40px;
+}
+.heat-table td:first-child { text-align:left; padding-left:12px; color:var(--text); font-weight:700; background:var(--surface2); letter-spacing:0.5px; }
+.heat-table tr:last-child td { border-bottom:none; }
+.heat-table td:last-child, .heat-table th:last-child { border-right:none; }
+
+.pie-legend {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  justify-content: center;
+}
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.pie-legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="f1-badge">F1</div>
+  <div>
+    <div class="header-title">2026 Season Analytics</div>
+  </div>
+  <div class="header-meta">
+    <div>Data through <strong>Round 3 &mdash; Japanese GP</strong></div>
+    <div>R4 Bahrain/Saudi cancelled &mdash; <strong>Next: Miami R4 May 1&ndash;3</strong> &nbsp;&middot;&nbsp; 22 Rounds Total</div>
+  </div>
+</header>
+
+<div class="top-nav">
+  <div class="top-tab active" data-cat="driver">Driver</div>
+  <div class="top-tab" data-cat="constructor">Constructor</div>
+  <div class="top-tab" data-cat="general">General</div>
+  <div class="top-tab" data-cat="community">FG Community</div>
+</div>
+
+<!-- DRIVER -->
+<div class="category-page active" id="cat-driver">
+  <div class="sub-nav">
+    <div class="sub-tab active" data-sub="d0">Points</div>
+    <div class="sub-tab" data-sub="d1">Standings</div>
+    <div class="sub-tab" data-sub="d2">Avg Place</div>
+    <div class="sub-tab" data-sub="d3">Place Heatmap</div>
+    <div class="sub-tab" data-sub="d4">Consecutive</div>
+    <div class="sub-tab" data-sub="d5">Podiums</div>
+    <div class="sub-tab" data-sub="d6">Points Finishes</div>
+    <div class="sub-tab" data-sub="d7">Points Share</div>
+    <div class="sub-tab" data-sub="d8">Retirements</div>
+  </div>
+  <div class="main">
+    <div class="rounds-bar">
+      <span class="round-pill done">R1 &middot; Australia &#10003;</span>
+      <span class="round-pill done">R2 &middot; China &#10003;</span>
+      <span class="round-pill done">R3 &middot; Japan &#10003;</span>
+      <span class="round-pill next">R4 &middot; Miami &middot; May 1&ndash;3</span>
+    </div>
+    <div class="sub-panel active" id="panel-d0">
+      <div class="panel-title">Driver Points &mdash; Cumulative</div>
+      <div class="panel-sub">Points earned per driver after each round. Click legend to show/hide. Hover for details. Dashed lines = rookie / selected drivers.</div>
+      <div class="chart-wrap"><canvas id="chartD0"></canvas></div>
+      <div class="legend-wrap" id="legendD0"></div>
+      <div class="note">R2 China includes sprint points. DNF/DNS = 0 pts.</div>
+    </div>
+    <div class="sub-panel" id="panel-d1">
+      <div class="panel-title">Driver Championship Position</div>
+      <div class="panel-sub">Championship position per driver after each round. Lower = better. Dashed lines = rookie / selected drivers.</div>
+      <div class="chart-wrap"><canvas id="chartD1"></canvas></div>
+      <div class="legend-wrap" id="legendD1"></div>
+    </div>
+    <div class="sub-panel" id="panel-d2">
+      <div class="panel-title">Cumulative Average Finish Position</div>
+      <div class="panel-sub">Rolling average race finish per driver. Lower = better. DNF/DNS = P20. Dashed lines = rookie / selected drivers.</div>
+      <div class="chart-wrap"><canvas id="chartD2"></canvas></div>
+      <div class="legend-wrap" id="legendD2"></div>
+    </div>
+    <div class="sub-panel" id="panel-d3">
+      <div class="panel-title">Driver Place Heatmap</div>
+      <div class="panel-sub">Race finish position per round. Green = best, yellow = mid, red = worst.</div>
+      <div class="heat-wrap"><table class="heat-table" id="heatD3"></table></div>
+      <div class="note">DNF/DNS shown as 20. Race results only (no sprint).</div>
+    </div>
+    <div class="sub-panel" id="panel-d4">
+      <div class="panel-title">Driver Consecutive Races Completed</div>
+      <div class="panel-sub">Consecutive finish streak. 0 = DNF/DNS. White &rarr; yellow &rarr; red = longer streak.</div>
+      <div class="heat-wrap"><table class="heat-table" id="heatD4"></table></div>
+    </div>
+    <div class="sub-panel" id="panel-d5">
+      <div class="panel-title">Podiums</div>
+      <div class="panel-sub">P1 (gold), P2 (silver), P3 (bronze) breakdown per driver. Hatched bars = rookie / selected drivers.</div>
+      <div class="chart-wrap bar"><canvas id="chartD5"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-d6">
+      <div class="panel-title">Points Position Finishes Count</div>
+      <div class="panel-sub">Number of races finished P1&ndash;P10 per driver. Hatched bars = rookie / selected drivers.</div>
+      <div class="chart-wrap bar"><canvas id="chartD6"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-d7">
+      <div class="panel-title">Cumulative Points Share &mdash; by Driver</div>
+      <div class="panel-sub">Proportion of total championship points scored per driver through R2.</div>
+      <div class="chart-wrap pie"><canvas id="chartD7"></canvas></div>
+      <div class="pie-legend" id="legendD7"></div>
+    </div>
+    <div class="sub-panel" id="panel-d8">
+      <div class="panel-title">Retirements by Driver</div>
+      <div class="panel-sub">DNF + DNS incidents per driver, broken down by cause. Colors match cause type palette.</div>
+      <div class="chart-wrap bar"><canvas id="chartD8"></canvas></div>
+      <div class="legend-wrap" id="legendD8ret"></div>
+      <div class="note">Includes both race retirements (DNF) and non-starters (DNS). Sources: race reports R1 Australia &amp; R2 China.</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONSTRUCTOR -->
+<div class="category-page" id="cat-constructor">
+  <div class="sub-nav">
+    <div class="sub-tab active" data-sub="c0">Points</div>
+    <div class="sub-tab" data-sub="c1">Standings</div>
+    <div class="sub-tab" data-sub="c2">Avg Place</div>
+    <div class="sub-tab" data-sub="c3">Consistency Heatmap</div>
+    <div class="sub-tab" data-sub="c4">Points Share</div>
+    <div class="sub-tab" data-sub="c5">Retirements</div>
+  </div>
+  <div class="main">
+    <div class="rounds-bar">
+      <span class="round-pill done">R1 &middot; Australia &#10003;</span>
+      <span class="round-pill done">R2 &middot; China &#10003;</span>
+      <span class="round-pill done">R3 &middot; Japan &#10003;</span>
+      <span class="round-pill next">R4 &middot; Miami &middot; May 1&ndash;3</span>
+    </div>
+    <div class="sub-panel active" id="panel-c0">
+      <div class="panel-title">Constructor Points &mdash; Cumulative</div>
+      <div class="panel-sub">Combined driver points per team after each round.</div>
+      <div class="chart-wrap"><canvas id="chartC0"></canvas></div>
+      <div class="legend-wrap" id="legendC0"></div>
+    </div>
+    <div class="sub-panel" id="panel-c1">
+      <div class="panel-title">Constructor Championship Position</div>
+      <div class="panel-sub">Team position in championship after each round. Lower = better.</div>
+      <div class="chart-wrap"><canvas id="chartC1"></canvas></div>
+      <div class="legend-wrap" id="legendC1"></div>
+    </div>
+    <div class="sub-panel" id="panel-c2">
+      <div class="panel-title">Constructor Average Finish &mdash; Place Pair</div>
+      <div class="panel-sub">Cumulative average of both drivers' race finish positions. Lower = better consistency.</div>
+      <div class="chart-wrap"><canvas id="chartC2"></canvas></div>
+      <div class="legend-wrap" id="legendC2"></div>
+      <div class="note">DNF/DNS counted as P20.</div>
+    </div>
+    <div class="sub-panel" id="panel-c3">
+      <div class="panel-title">Constructor Consistency Heatmap</div>
+      <div class="panel-sub">Place pair average per round. Green = best consistency, red = worst.</div>
+      <div class="heat-wrap"><table class="heat-table" id="heatC3"></table></div>
+    </div>
+    <div class="sub-panel" id="panel-c4">
+      <div class="panel-title">Cumulative Points Share &mdash; by Constructor</div>
+      <div class="panel-sub">Proportion of total championship points scored per team through R2.</div>
+      <div class="chart-wrap pie"><canvas id="chartC4"></canvas></div>
+      <div class="pie-legend" id="legendC4"></div>
+    </div>
+    <div class="sub-panel" id="panel-c5">
+      <div class="panel-title">Retirements by Constructor</div>
+      <div class="panel-sub">DNF + DNS incidents per team, broken down by cause. Stacked to match cause color palette.</div>
+      <div class="chart-wrap bar"><canvas id="chartC5"></canvas></div>
+      <div class="legend-wrap" id="legendC5"></div>
+      <div class="note">Includes both race retirements (DNF) and non-starters (DNS). Sources: race reports R1 Australia &amp; R2 China.</div>
+    </div>
+  </div>
+</div>
+
+<!-- GENERAL -->
+<div class="category-page" id="cat-general">
+  <div class="sub-nav">
+    <div class="sub-tab active" data-sub="g0">Points by Engine</div>
+    <div class="sub-tab" data-sub="g1">Points by Country</div>
+    <div class="sub-tab" data-sub="g2">Retirements by Cause</div>
+  </div>
+  <div class="main">
+    <div class="rounds-bar">
+      <span class="round-pill done">R1 &middot; Australia &#10003;</span>
+      <span class="round-pill done">R2 &middot; China &#10003;</span>
+      <span class="round-pill done">R3 &middot; Japan &#10003;</span>
+      <span class="round-pill next">R4 &middot; Miami &middot; May 1&ndash;3</span>
+    </div>
+    <div class="sub-panel active" id="panel-g0">
+      <div class="panel-title">Cumulative Points Share &mdash; by Engine Supplier</div>
+      <div class="panel-sub">Total points grouped by power unit manufacturer through R2.</div>
+      <div class="chart-wrap pie"><canvas id="chartG0"></canvas></div>
+      <div class="pie-legend" id="legendG0"></div>
+      <div class="note">Mercedes (Mercedes, McLaren, Williams, Alpine) &middot; Ferrari (Ferrari, Haas, Cadillac) &middot; Red Bull Ford (Red Bull, Racing Bulls) &middot; Honda (Aston Martin) &middot; Audi (Audi)</div>
+    </div>
+    <div class="sub-panel" id="panel-g1">
+      <div class="panel-title">Cumulative Points Share &mdash; by Driver Country</div>
+      <div class="panel-sub">Total points grouped by driver nationality through R2.</div>
+      <div class="chart-wrap pie"><canvas id="chartG1"></canvas></div>
+      <div class="pie-legend" id="legendG1"></div>
+    </div>
+    <div class="sub-panel" id="panel-g2">
+      <div class="panel-title">Retirements by Cause</div>
+      <div class="panel-sub">Total DNF + DNS incidents across R1&ndash;R2, grouped by technical cause.</div>
+      <div class="chart-wrap hbar"><canvas id="chartG2"></canvas></div>
+      <div class="note">Power Unit = electrical / battery / hybrid system faults. Mechanical = broader drivetrain / hydraulics / suspension. Accident = crash or spin off. Strategic = team-initiated precautionary retirement.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FG COMMUNITY -->
+<div class="category-page" id="cat-community">
+  <div class="sub-nav">
+    <div class="sub-tab active" data-sub="fg0">Member Growth</div>
+    <div class="sub-tab" data-sub="fg1">Location</div>
+    <div class="sub-tab" data-sub="fg2">Region</div>
+    <div class="sub-tab" data-sub="fg3">Studio</div>
+    <div class="sub-tab" data-sub="fg4">Role</div>
+    <div class="sub-tab" data-sub="fg5">Appointment</div>
+    <div class="sub-tab" data-sub="fg6">Participation</div>
+  </div>
+  <div class="main">
+    <div class="sub-panel active" id="panel-fg0">
+      <div class="panel-title">Cumulative Member Count</div>
+      <div class="panel-sub">Total FG Community members over time, accounting for additions and departures.</div>
+      <div class="chart-wrap"><canvas id="chartFG0"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-fg1">
+      <div class="panel-title">Members by Physical Location</div>
+      <div class="panel-sub">Active member count per physical office location.</div>
+      <div class="chart-wrap hbar"><canvas id="chartFG1"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-fg2">
+      <div class="panel-title">Members by Region</div>
+      <div class="panel-sub">Active member count per regional group.</div>
+      <div class="chart-wrap hbar"><canvas id="chartFG2"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-fg3">
+      <div class="panel-title">Members by Studio</div>
+      <div class="panel-sub">Active member count per studio (full studio name).</div>
+      <div class="chart-wrap hbar-xl"><canvas id="chartFG3"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-fg4">
+      <div class="panel-title">Members by Primary Role</div>
+      <div class="panel-sub">Active member count per role. Roles with only 1 count are grouped as "Other".</div>
+      <div class="chart-wrap hbar"><canvas id="chartFG4"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-fg5">
+      <div class="panel-title">Members by Appointment</div>
+      <div class="panel-sub">Active member count per appointment level.</div>
+      <div class="chart-wrap hbar"><canvas id="chartFG5"></canvas></div>
+    </div>
+    <div class="sub-panel" id="panel-fg6">
+      <div class="panel-title">All-Time Participation by Event Type</div>
+      <div class="panel-sub">All 142 participants ever in the group, broken down by how they joined or departed. Launch &amp; Added = active; Left = departed voluntarily.</div>
+      <div class="chart-wrap pie"><canvas id="chartFG6"></canvas></div>
+      <div class="pie-legend" id="legendFG6"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ DATA ═══
+
+const ROUNDS = ['R1 AUS', 'R2 CHN', 'R3 JPN'];
+const ROUNDS_LABEL = ['R1 \u00b7 Australia', 'R2 \u00b7 China', 'R3 \u00b7 Japan'];
+
+// Drivers marked for dashed lines / hatched bars
+const DASH_DRIVERS = new Set(['Antonelli','Hadjar','Bortoleto','Perez','Lindblad','Piastri','Stroll','Leclerc','Albon','Ocon','Colapinto']);
+
+const driverTeam = {
+  'Russell':'Mercedes','Antonelli':'Mercedes','Leclerc':'Ferrari','Hamilton':'Ferrari',
+  'Bearman':'Haas','Norris':'McLaren','Gasly':'Alpine','Verstappen':'Red Bull',
+  'Lawson':'Racing Bulls','Lindblad':'Racing Bulls','Hadjar':'Red Bull','Piastri':'McLaren',
+  'Sainz':'Williams','Bortoleto':'Audi','Colapinto':'Alpine','Ocon':'Haas',
+  'Hulkenberg':'Audi','Albon':'Williams','Bottas':'Cadillac','Perez':'Cadillac',
+  'Alonso':'Aston Martin','Stroll':'Aston Martin',
+};
+
+const teamEngine = {
+  'Mercedes':'Mercedes','McLaren':'Mercedes','Williams':'Mercedes','Alpine':'Mercedes',
+  'Ferrari':'Ferrari','Haas':'Ferrari','Cadillac':'Ferrari',
+  'Red Bull':'Red Bull Ford','Racing Bulls':'Red Bull Ford',
+  'Aston Martin':'Honda','Audi':'Audi',
+};
+
+const driverCountry = {
+  'Russell':'Great Britain','Antonelli':'Italy','Leclerc':'Monaco','Hamilton':'Great Britain',
+  'Bearman':'Great Britain','Norris':'Great Britain','Gasly':'France','Verstappen':'Netherlands',
+  'Lawson':'New Zealand','Lindblad':'Great Britain','Hadjar':'France','Piastri':'Australia',
+  'Sainz':'Spain','Bortoleto':'Brazil','Colapinto':'Argentina','Ocon':'France',
+  'Hulkenberg':'Germany','Albon':'Thailand','Bottas':'Finland','Perez':'Mexico',
+  'Alonso':'Spain','Stroll':'Canada',
+};
+
+const driverPoints = {
+  'Russell':[25,26,0],'Antonelli':[18,29,25],'Leclerc':[15,19,15],'Hamilton':[12,21,8],
+  'Bearman':[6,11,0],'Norris':[10,5,10],'Gasly':[1,8,6],'Verstappen':[8,0,4],
+  'Lawson':[0,8,2],'Lindblad':[4,0,0],'Hadjar':[0,4,0],'Piastri':[0,3,18],
+  'Sainz':[0,2,0],'Bortoleto':[2,0,0],'Colapinto':[0,1,0],'Ocon':[0,0,1],
+  'Hulkenberg':[0,0,0],'Albon':[0,0,0],'Bottas':[0,0,0],'Perez':[0,0,0],
+  'Alonso':[0,0,0],'Stroll':[0,0,0],
+};
+
+const driverFinish = {
+  'Russell':[1,2,4],'Antonelli':[2,1,1],'Leclerc':[3,4,3],'Hamilton':[4,3,6],
+  'Bearman':[7,5,20],'Norris':[5,20,5],'Gasly':[10,6,7],'Verstappen':[6,20,8],
+  'Lawson':[13,7,9],'Lindblad':[8,12,14],'Hadjar':[20,8,12],'Piastri':[20,20,2],
+  'Sainz':[15,9,15],'Bortoleto':[9,20,13],'Colapinto':[14,10,16],'Ocon':[11,14,10],
+  'Hulkenberg':[20,11,11],'Albon':[12,20,20],'Bottas':[19,13,19],'Perez':[16,15,17],
+  'Alonso':[18,20,18],'Stroll':[17,20,20],
+};
+
+const teamColors = {
+  'Mercedes':'#00D2BE','Ferrari':'#E8002D','McLaren':'#FF8000','Red Bull':'#3671C6',
+  'Racing Bulls':'#6692FF','Alpine':'#FF87BC','Aston Martin':'#358C75','Haas':'#B6BABD',
+  'Williams':'#64C4FF','Audi':'#A8A8A8','Cadillac':'#9B6DD0',
+};
+
+const engineColors = {
+  'Mercedes':'#00D2BE','Ferrari':'#E8002D','Red Bull Ford':'#3671C6',
+  'Honda':'#358C75','Audi':'#A8A8A8',
+};
+
+const countryColors = {
+  'Great Britain':'#00247D','Italy':'#009246','Monaco':'#CE1126','France':'#0055A4',
+  'Netherlands':'#FF6600','New Zealand':'#00247D','Australia':'#FFCD00','Spain':'#AA151B',
+  'Brazil':'#009C3B','Argentina':'#74ACDF','Germany':'#FFCE00','Thailand':'#A51931',
+  'Finland':'#003580','Mexico':'#006847','Canada':'#FF0000',
+};
+
+// ═══ HELPERS ═══
+
+const drivers = Object.keys(driverPoints);
+const teams = Object.keys(teamColors);
+
+function dC(d){ return teamColors[driverTeam[d]]||'#888'; }
+function cum(arr){ let s=0; return arr.map(v=>{s+=v;return s;}); }
+function totD(d){ return driverPoints[d].reduce((a,b)=>a+b,0); }
+function totT(t){ return drivers.filter(d=>driverTeam[d]===t).reduce((s,d)=>s+totD(d),0); }
+function isDash(d){ return DASH_DRIVERS.has(d); }
+
+// Create diagonal hatch pattern for bar charts
+function hatchPattern(color){
+  const size=8;
+  const c=document.createElement('canvas');
+  c.width=size; c.height=size;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,size,size);
+  // semi-transparent fill
+  ctx.fillStyle=color+'55';
+  ctx.fillRect(0,0,size,size);
+  // diagonal lines
+  ctx.strokeStyle=color+'cc';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(0,size); ctx.lineTo(size,0);
+  ctx.moveTo(-size/2,size/2); ctx.lineTo(size/2,-size/2);
+  ctx.moveTo(size/2,size*1.5); ctx.lineTo(size*1.5,size/2);
+  ctx.stroke();
+  return ctx.createPattern(c,'repeat');
+}
+
+Chart.defaults.color = '#60607a';
+Chart.defaults.font.family = "'Source Code Pro', monospace";
+Chart.defaults.font.size = 11;
+
+function lineOpts(yLabel, rev=false) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{
+      legend:{ display:false },
+      tooltip:{
+        backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+        titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+        bodyFont:{family:"'Source Code Pro', monospace",size:11},
+        titleColor:'#e4e4f0', bodyColor:'#9090a8',
+        callbacks:{
+          title:items=>ROUNDS_LABEL[items[0].dataIndex],
+          label:item=>{
+            if(item.raw===null||item.raw===undefined) return null;
+            return '  '+item.dataset.label+': '+item.raw;
+          },
+        },
+        itemSort:(a,b)=>rev?a.raw-b.raw:b.raw-a.raw,
+        filter:item=>item.raw!==null&&item.raw!==undefined,
+      }
+    },
+    scales:{
+      x:{ grid:{color:'#18182a'}, border:{color:'#242434'},
+          ticks:{font:{family:"'Source Code Pro', monospace",size:11,weight:'600'}} },
+      y:{ grid:{color:'#18182a'}, border:{color:'#242434'}, reverse:rev,
+          title:{display:true,text:yLabel,font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'},
+          ticks:{font:{family:"'Source Code Pro', monospace",size:11}} }
+    }
+  };
+}
+
+function mkDs(label,data,color,dash=false){
+  return {
+    label,data,
+    borderColor:color, backgroundColor:color+'18',
+    pointBackgroundColor:color, pointBorderColor:'#07070c',
+    pointBorderWidth:2, pointRadius:5, pointHoverRadius:8,
+    borderWidth:dash?1.5:2,
+    borderDash:dash?[5,4]:[],
+    tension:0.2, fill:false,
+  };
+}
+
+function mkLegend(chartId,legendId,items){
+  const wrap=document.getElementById(legendId);
+  const chart=Chart.getChart(chartId);
+  items.forEach((item,i)=>{
+    const el=document.createElement('div');
+    el.className='legend-item';
+    el.innerHTML='<span class="legend-dot" style="background:'+item.color+(item.dash?';outline:1px dashed '+item.color+';outline-offset:2px':'')+'">'+'</span>'+item.label;
+    el.addEventListener('click',()=>{
+      const m=chart.getDatasetMeta(i);
+      m.hidden=!m.hidden;
+      el.classList.toggle('hidden',m.hidden);
+      chart.update();
+    });
+    wrap.appendChild(el);
+  });
+}
+
+// ═══ LINE CHARTS ═══
+
+// D0 Driver Points
+(function(){
+  const dss=drivers.map(d=>mkDs(d,cum(driverPoints[d]),dC(d),isDash(d)));
+  new Chart(document.getElementById('chartD0').getContext('2d'),
+    {type:'line',data:{labels:ROUNDS,datasets:dss},options:lineOpts('Cumulative Points')});
+  mkLegend('chartD0','legendD0',drivers.map(d=>({label:d,color:dC(d),dash:isDash(d)})));
+})();
+
+// D1 Driver Standings
+(function(){
+  function pos(round){
+    const pts=drivers.map(d=>({name:d,pts:driverPoints[d].slice(0,round+1).reduce((a,b)=>a+b,0)}));
+    pts.sort((a,b)=>b.pts-a.pts);
+    const p={}; pts.forEach((d,i)=>p[d.name]=i+1); return p;
+  }
+  const positions=ROUNDS.map((_,i)=>pos(i));
+  const dss=drivers.map(d=>mkDs(d,positions.map(p=>p[d]),dC(d),isDash(d)));
+  const opts={...lineOpts('Championship Position',true),
+    scales:{...lineOpts('Championship Position',true).scales,
+      y:{...lineOpts('Championship Position',true).scales.y,min:1,max:22,ticks:{stepSize:2}}}};
+  new Chart(document.getElementById('chartD1').getContext('2d'),{type:'line',data:{labels:ROUNDS,datasets:dss},options:opts});
+  mkLegend('chartD1','legendD1',drivers.map(d=>({label:d,color:dC(d),dash:isDash(d)})));
+})();
+
+// D2 Avg Finish
+(function(){
+  const dss=drivers.map(d=>{
+    const f=driverFinish[d];
+    const data=f.map((_,i)=>Math.round(f.slice(0,i+1).reduce((a,b)=>a+b,0)/(i+1)*10)/10);
+    return mkDs(d,data,dC(d),isDash(d));
+  });
+  const opts={...lineOpts('Avg Finish Pos',true),
+    scales:{...lineOpts('Avg Finish Pos',true).scales,
+      y:{...lineOpts('Avg Finish Pos',true).scales.y,min:1,max:22,reverse:true,ticks:{stepSize:2}}}};
+  new Chart(document.getElementById('chartD2').getContext('2d'),{type:'line',data:{labels:ROUNDS,datasets:dss},options:opts});
+  mkLegend('chartD2','legendD2',drivers.map(d=>({label:d,color:dC(d),dash:isDash(d)})));
+})();
+
+// ═══ TEAM DATA ═══
+
+var teamPtsR = (function(){
+  const nR=ROUNDS.length; const tp={}; teams.forEach(t=>tp[t]=Array(nR).fill(0));
+  drivers.forEach(d=>{ const t=driverTeam[d]; driverPoints[d].forEach((p,i)=>tp[t][i]+=p); });
+  return tp;
+})();
+
+var teamFinR = (function(){
+  const nR2=ROUNDS.length; const tf={}; teams.forEach(t=>tf[t]=Array.from({length:nR2},()=>[]));
+  drivers.forEach(d=>{ const t=driverTeam[d]; driverFinish[d].forEach((f,i)=>tf[t][i].push(f)); });
+  const res={};
+  teams.forEach(t=>{
+    res[t]=tf[t].map(r=>r.length===0?null:Math.round(r.reduce((a,b)=>a+b,0)/r.length*10)/10);
+  });
+  return res;
+})();
+
+// C0 Constructor Points
+(function(){
+  const dss=teams.map(t=>mkDs(t,cum(teamPtsR[t]),teamColors[t]));
+  new Chart(document.getElementById('chartC0').getContext('2d'),
+    {type:'line',data:{labels:ROUNDS,datasets:dss},options:lineOpts('Cumulative Points')});
+  mkLegend('chartC0','legendC0',teams.map(t=>({label:t,color:teamColors[t]})));
+})();
+
+// C1 Constructor Standings
+(function(){
+  function pos(round){
+    const pts=teams.map(t=>({name:t,pts:teamPtsR[t].slice(0,round+1).reduce((a,b)=>a+b,0)}));
+    pts.sort((a,b)=>b.pts-a.pts);
+    const p={}; pts.forEach((t,i)=>p[t.name]=i+1); return p;
+  }
+  const positions=ROUNDS.map((_,i)=>pos(i));
+  const dss=teams.map(t=>mkDs(t,positions.map(p=>p[t]),teamColors[t]));
+  const opts={...lineOpts('Championship Position',true),
+    scales:{...lineOpts('Championship Position',true).scales,
+      y:{...lineOpts('Championship Position',true).scales.y,min:1,max:11,reverse:true,ticks:{stepSize:1}}}};
+  new Chart(document.getElementById('chartC1').getContext('2d'),{type:'line',data:{labels:ROUNDS,datasets:dss},options:opts});
+  mkLegend('chartC1','legendC1',teams.map(t=>({label:t,color:teamColors[t]})));
+})();
+
+// C2 Constructor Avg Place
+(function(){
+  const dss=teams.map(t=>{
+    let s=0;
+    const data=teamFinR[t].map((v,i)=>{if(v===null)return null;s+=v;return Math.round(s/(i+1)*10)/10;});
+    return mkDs(t,data,teamColors[t]);
+  });
+  const opts={...lineOpts('Avg Pair Finish Pos',true),
+    scales:{...lineOpts('Avg Pair Finish Pos',true).scales,
+      y:{...lineOpts('Avg Pair Finish Pos',true).scales.y,min:1,max:22,reverse:true,ticks:{stepSize:2}}}};
+  new Chart(document.getElementById('chartC2').getContext('2d'),{type:'line',data:{labels:ROUNDS,datasets:dss},options:opts});
+  mkLegend('chartC2','legendC2',teams.map(t=>({label:t,color:teamColors[t]})));
+})();
+
+// ═══ HEATMAPS ═══
+
+function heatDriverPlace(v){
+  if(v===null) return '#1a1a2a';
+  const t=Math.min((v-1)/19,1);
+  if(t<=0.5){ const u=t*2; return 'rgb('+Math.round(u*200)+','+Math.round(160+20*(1-u))+','+Math.round(30*(1-u))+')'; }
+  const u=(t-0.5)*2;
+  return 'rgb('+Math.round(200+30*u)+','+Math.round(160*(1-u))+','+Math.round(u*10)+')';
+}
+
+function heatConsec(v){
+  if(v===0) return '#dde0ec';
+  const t=Math.min(v/5,1);
+  if(t<=0.5){ const u=t*2; return 'rgb(255,'+Math.round(240-60*u)+','+Math.round(20*u)+')'; }
+  const u=(t-0.5)*2;
+  return 'rgb('+Math.round(255-30*u)+','+Math.round(180*(1-u)+20)+','+Math.round(10*(1-u))+')';
+}
+
+function textColor(bg){
+  const m=bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if(!m) return bg==='#dde0ec'?'#111':'#eee';
+  const lum=(+m[1]*299+(+m[2])*587+(+m[3])*114)/1000;
+  return lum>128?'#111':'#eee';
+}
+
+(function(){
+  const sorted=[...drivers].sort((a,b)=>totD(b)-totD(a));
+  let h='<thead><tr><th>Driver</th>';
+  ROUNDS.forEach((_,i)=>{ h+='<th>R'+(i+1)+'</th>'; });
+  h+='</tr></thead><tbody>';
+  sorted.forEach(d=>{
+    h+='<tr><td>'+d+'</td>';
+    driverFinish[d].forEach(p=>{
+      const bg=heatDriverPlace(p);
+      const lbl=p===20?'DNF':p;
+      h+='<td style="background:'+bg+';color:'+textColor(bg)+'">'+lbl+'</td>';
+    });
+    h+='</tr>';
+  });
+  document.getElementById('heatD3').innerHTML=h+'</tbody>';
+})();
+
+(function(){
+  const sorted=[...drivers].sort((a,b)=>totD(b)-totD(a));
+  let h='<thead><tr><th>Driver</th>';
+  ROUNDS.forEach((_,i)=>{ h+='<th>R'+(i+1)+'</th>'; });
+  h+='</tr></thead><tbody>';
+  sorted.forEach(d=>{
+    let streak=0;
+    const streaks=driverFinish[d].map(p=>{ if(p===20){streak=0;return 0;} streak++;return streak; });
+    h+='<tr><td>'+d+'</td>';
+    streaks.forEach(v=>{
+      const bg=heatConsec(v);
+      const tc=v===0?'#111':textColor(bg);
+      h+='<td style="background:'+bg+';color:'+tc+'">'+v+'</td>';
+    });
+    h+='</tr>';
+  });
+  document.getElementById('heatD4').innerHTML=h+'</tbody>';
+})();
+
+(function(){
+  const allVals=[];
+  teams.forEach(t=>teamFinR[t].forEach(v=>{ if(v!==null) allVals.push(v); }));
+  const minV=Math.min(...allVals), maxV=Math.max(...allVals);
+  function heatPair(v){
+    if(v===null) return '#1a1a2a';
+    const t=Math.min((v-minV)/(maxV-minV+0.001),1);
+    if(t<=0.5){ const u=t*2; return 'rgb('+Math.round(u*200)+','+Math.round(160+20*(1-u))+','+Math.round(30*(1-u))+')'; }
+    const u=(t-0.5)*2;
+    return 'rgb('+Math.round(200+30*u)+','+Math.round(160*(1-u))+','+Math.round(u*10)+')';
+  }
+  const sorted=[...teams].sort((a,b)=>totT(b)-totT(a));
+  let h='<thead><tr><th>Team</th>';
+  ROUNDS.forEach((_,i)=>{ h+='<th>R'+(i+1)+'</th>'; });
+  h+='</tr></thead><tbody>';
+  sorted.forEach(t=>{
+    h+='<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+teamColors[t]+';margin-right:7px;vertical-align:middle"></span>'+t+'</td>';
+    teamFinR[t].forEach(v=>{
+      const bg=heatPair(v);
+      const disp=v===null?'&mdash;':v.toFixed(1);
+      h+='<td style="background:'+bg+';color:'+(v===null?'#60607a':textColor(bg))+'">'+disp+'</td>';
+    });
+    h+='</tr>';
+  });
+  document.getElementById('heatC3').innerHTML=h+'</tbody>';
+})();
+
+// ═══ BAR CHARTS ═══
+
+function barOpts(yLabel,stackedLegend=false){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:stackedLegend?{display:true,position:'top',labels:{color:'#9090a8',font:{family:"'Source Code Pro', monospace",size:10},boxWidth:10,padding:14}}:{display:false},
+      tooltip:{
+        backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+        titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+        bodyFont:{family:"'Source Code Pro', monospace",size:11},
+        titleColor:'#e4e4f0', bodyColor:'#9090a8',
+      }
+    },
+    scales:{
+      x:{ grid:{display:false}, border:{color:'#242434'},
+          ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'}} },
+      y:{ grid:{color:'#18182a'}, border:{color:'#242434'},
+          ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+          title:{display:true,text:yLabel,font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}}
+    }
+  };
+}
+
+// D5 Podiums (Top 3 Split with stacked gold/silver/bronze, hatching for dash drivers)
+(function(){
+  const p1={},p2={},p3={};
+  drivers.forEach(d=>{
+    p1[d]=driverFinish[d].filter(p=>p===1).length;
+    p2[d]=driverFinish[d].filter(p=>p===2).length;
+    p3[d]=driverFinish[d].filter(p=>p===3).length;
+  });
+  const sorted=[...drivers].sort((a,b)=>(p1[b]+p2[b]+p3[b])-(p1[a]+p2[a]+p3[a])).filter(d=>p1[d]+p2[d]+p3[d]>0);
+
+  // Build per-bar background arrays using hatch pattern for dash drivers
+  function makeBg(baseColor,alpha){
+    return sorted.map(d=>{
+      if(isDash(d)) return hatchPattern(baseColor);
+      return baseColor+(alpha||'cc');
+    });
+  }
+
+  const opts={...barOpts('Count',true),
+    scales:{
+      x:{...barOpts('Count').scales.x,stacked:true},
+      y:{...barOpts('Count').scales.y,stacked:true}
+    }
+  };
+  new Chart(document.getElementById('chartD5').getContext('2d'),{
+    type:'bar',
+    data:{ labels:sorted,
+      datasets:[
+        {label:'P1 \u2014 Win', data:sorted.map(d=>p1[d]), backgroundColor:makeBg('#f5c842'), borderColor:'#f5c842', borderWidth:1, borderRadius:2, stack:'s'},
+        {label:'P2 \u2014 2nd', data:sorted.map(d=>p2[d]), backgroundColor:makeBg('#b0b8c8'), borderColor:'#b0b8c8', borderWidth:1, borderRadius:2, stack:'s'},
+        {label:'P3 \u2014 3rd', data:sorted.map(d=>p3[d]), backgroundColor:makeBg('#cd7f32'), borderColor:'#cd7f32', borderWidth:1, borderRadius:2, stack:'s'},
+      ]
+    },
+    options:opts,
+  });
+})();
+
+// D6 Points Finishes
+(function(){
+  const pf={};
+  drivers.forEach(d=>pf[d]=driverFinish[d].filter(p=>p<=10).length);
+  const sorted=[...drivers].sort((a,b)=>pf[b]-pf[a]).filter(d=>pf[d]>0);
+  const bgColors=sorted.map(d=>isDash(d)?hatchPattern(dC(d)):dC(d)+'cc');
+  new Chart(document.getElementById('chartD6').getContext('2d'),{
+    type:'bar',
+    data:{ labels:sorted,
+      datasets:[{label:'Points Finishes',data:sorted.map(d=>pf[d]),
+        backgroundColor:bgColors,borderColor:sorted.map(d=>dC(d)),borderWidth:1,borderRadius:2}]
+    },
+    options:barOpts('Count'),
+  });
+})();
+
+// ═══ PIE / DOUGHNUT ═══
+
+// dashFlags: optional bool array — true = hatch that segment
+function buildPie(canvasId,legendId,labels,values,colors,dashFlags){
+  const total=values.reduce((a,b)=>a+b,0);
+  const bgColors=colors.map((c,i)=>(dashFlags&&dashFlags[i])?hatchPattern(c):c+'cc');
+  new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'doughnut',
+    data:{ labels,
+      datasets:[{data:values,backgroundColor:bgColors,borderColor:colors,borderWidth:1,hoverOffset:8}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'50%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0', bodyColor:'#9090a8',
+          callbacks:{ label:item=>{
+            const pct=((item.raw/total)*100).toFixed(1);
+            return '  '+item.label+': '+item.raw+' pts ('+pct+'%)';
+          }}
+        }
+      }
+    }
+  });
+  const wrap=document.getElementById(legendId);
+  labels.forEach((lbl,i)=>{
+    if(values[i]===0) return;
+    const el=document.createElement('div');
+    el.className='pie-legend-item';
+    const dotStyle=(dashFlags&&dashFlags[i])
+      ?'background:transparent;border:2px dashed '+colors[i]+';width:9px;height:9px;'
+      :'background:'+colors[i]+';';
+    el.innerHTML='<span class="pie-legend-dot" style="'+dotStyle+'"></span>'+lbl+': '+values[i];
+    wrap.appendChild(el);
+  });
+}
+
+(function(){
+  const sorted=[...drivers].sort((a,b)=>totD(b)-totD(a)).filter(d=>totD(d)>0);
+  buildPie('chartD7','legendD7',sorted,sorted.map(totD),sorted.map(dC),sorted.map(isDash));
+})();
+
+(function(){
+  const sorted=[...teams].sort((a,b)=>totT(b)-totT(a)).filter(t=>totT(t)>0);
+  buildPie('chartC4','legendC4',sorted,sorted.map(totT),sorted.map(t=>teamColors[t]));
+})();
+
+(function(){
+  const engines=Object.keys(engineColors);
+  const ep={};
+  engines.forEach(e=>ep[e]=0);
+  drivers.forEach(d=>{ const e=teamEngine[driverTeam[d]]; ep[e]=(ep[e]||0)+totD(d); });
+  const sorted=engines.sort((a,b)=>ep[b]-ep[a]).filter(e=>ep[e]>0);
+  buildPie('chartG0','legendG0',sorted,sorted.map(e=>ep[e]),sorted.map(e=>engineColors[e]));
+})();
+
+(function(){
+  const cp={};
+  drivers.forEach(d=>{ const c=driverCountry[d]; cp[c]=(cp[c]||0)+totD(d); });
+  const sorted=Object.keys(cp).sort((a,b)=>cp[b]-cp[a]).filter(c=>cp[c]>0);
+  buildPie('chartG1','legendG1',sorted,sorted.map(c=>cp[c]),sorted.map(c=>countryColors[c]||'#888888'));
+})();
+
+// ═══ NAV ═══
+
+document.querySelectorAll('.top-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.top-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.category-page').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('cat-'+tab.dataset.cat).classList.add('active');
+    setTimeout(resizeVisible,60);
+  });
+});
+
+document.querySelectorAll('.sub-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    const cat=tab.closest('.category-page');
+    cat.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+    cat.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    const panel=cat.querySelector('#panel-'+tab.dataset.sub);
+    if(panel) panel.classList.add('active');
+    setTimeout(resizeVisible,60);
+  });
+});
+
+function resizeVisible(){
+  document.querySelectorAll('.sub-panel.active canvas').forEach(c=>{
+    const chart=Chart.getChart(c);
+    if(chart) chart.resize();
+  });
+}
+
+// ═══ RETIREMENT DATA ═══
+const CAUSE_COLORS = {
+  'Power Unit': '#3A9AD9',
+  'Mechanical': '#F5A623',
+  'Accident':   '#E8002D',
+  'Strategic':  '#9B6DD0',
+};
+const CAUSES = Object.keys(CAUSE_COLORS);
+
+// [driver, team, round, cause]
+// R1 AUS: Piastri DNS(Accident-crash recon lap), Hulkenberg DNS(Mechanical), Alonso DNF(Strategic-precautionary), Bottas DNF(Mechanical), Hadjar DNF(Power Unit-engine)
+// R2 CHN: Norris DNS(Power Unit-electrical), Piastri DNS(Power Unit-electrical), Bortoleto DNS(Mechanical-hydraulics), Albon DNS(Mechanical-suspension), Stroll DNF(Power Unit-battery), Alonso DNF(Power Unit-battery vibration), Verstappen DNF(Power Unit-suspected electrical)
+// R3 JPN: Stroll DNF(Mechanical-water pressure), Bearman DNF(Accident-50G crash)
+const retirementLog = [
+  {driver:'Piastri',   team:'McLaren',      round:'R1 AUS', cause:'Accident'},
+  {driver:'Hulkenberg',team:'Audi',         round:'R1 AUS', cause:'Mechanical'},
+  {driver:'Alonso',    team:'Aston Martin', round:'R1 AUS', cause:'Strategic'},
+  {driver:'Bottas',    team:'Cadillac',     round:'R1 AUS', cause:'Mechanical'},
+  {driver:'Hadjar',    team:'Red Bull',     round:'R1 AUS', cause:'Power Unit'},
+  {driver:'Norris',    team:'McLaren',      round:'R2 CHN', cause:'Power Unit'},
+  {driver:'Piastri',   team:'McLaren',      round:'R2 CHN', cause:'Power Unit'},
+  {driver:'Bortoleto', team:'Audi',         round:'R2 CHN', cause:'Mechanical'},
+  {driver:'Albon',     team:'Williams',     round:'R2 CHN', cause:'Mechanical'},
+  {driver:'Stroll',    team:'Aston Martin', round:'R2 CHN', cause:'Power Unit'},
+  {driver:'Alonso',    team:'Aston Martin', round:'R2 CHN', cause:'Power Unit'},
+  {driver:'Verstappen',team:'Red Bull',     round:'R2 CHN', cause:'Power Unit'},
+  {driver:'Stroll',    team:'Aston Martin', round:'R3 JPN', cause:'Mechanical'},
+  {driver:'Bearman',   team:'Haas',         round:'R3 JPN', cause:'Accident'},
+];
+
+function retStackedDatasets(groupKey) {
+  const groups = [...new Set(retirementLog.map(r => r[groupKey]))];
+  const counts = {};
+  groups.forEach(g => { counts[g] = {}; CAUSES.forEach(c => counts[g][c] = 0); });
+  retirementLog.forEach(r => counts[r[groupKey]][r.cause]++);
+  groups.sort((a,b) => CAUSES.reduce((s,c)=>s+counts[b][c],0) - CAUSES.reduce((s,c)=>s+counts[a][c],0));
+  const datasets = CAUSES.map(cause => ({
+    label: cause,
+    data: groups.map(g => counts[g][cause]),
+    backgroundColor: CAUSE_COLORS[cause]+'cc',
+    borderColor: CAUSE_COLORS[cause],
+    borderWidth: 1, borderRadius: 2, stack: 's',
+  }));
+  return { labels: groups, datasets };
+}
+
+function retBarOpts(yLabel) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:true, position:'top',
+        labels:{color:'#9090a8',font:{family:"'Source Code Pro', monospace",size:10},boxWidth:10,padding:14}},
+      tooltip:{
+        backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+        titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+        bodyFont:{family:"'Source Code Pro', monospace",size:11},
+        titleColor:'#e4e4f0',bodyColor:'#9090a8',
+      }
+    },
+    scales:{
+      x:{stacked:true,grid:{display:false},border:{color:'#242434'},
+         ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'}}},
+      y:{stacked:true,grid:{color:'#18182a'},border:{color:'#242434'},
+         ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+         title:{display:true,text:yLabel,font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}}
+    }
+  };
+}
+
+// Plugin: draws "TOTAL\nNN" in upper-right of any retirement chart
+function retTotalPlugin(total) {
+  return {
+    id: 'retTotal',
+    afterDraw(chart) {
+      const {ctx, chartArea:{right, top}} = chart;
+      const pad = 14;
+      ctx.save();
+      // background pill
+      const label1 = 'TOTAL';
+      const label2 = String(total);
+      ctx.font = '600 11px "Source Code Pro", monospace';
+      const w1 = ctx.measureText(label1).width;
+      ctx.font = '900 42px "Source Code Pro", monospace';
+      const w2 = ctx.measureText(label2).width;
+      const boxW = Math.max(w1, w2) + pad * 2;
+      const boxH = 80;
+      const bx = right - boxW - 10;
+      const by = top + 10;
+      ctx.fillStyle = 'rgba(10,10,20,0.72)';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#242434';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // label "TOTAL"
+      ctx.fillStyle = '#60607a';
+      ctx.font = '600 11px "Source Code Pro", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(label1, bx + boxW / 2, by + 22);
+      // big number
+      ctx.fillStyle = '#e4e4f0';
+      ctx.font = '700 38px "Source Code Pro", monospace';
+      ctx.fillText(label2, bx + boxW / 2, by + 66);
+      ctx.restore();
+    }
+  };
+}
+
+const TOTAL_RETIREMENTS = retirementLog.length;
+
+// G2: Retirements by Cause (horizontal bar)
+(function(){
+  const cc={};CAUSES.forEach(c=>cc[c]=0);
+  retirementLog.forEach(r=>cc[r.cause]++);
+  const sorted=[...CAUSES].sort((a,b)=>cc[b]-cc[a]);
+  new Chart(document.getElementById('chartG2').getContext('2d'),{
+    type:'bar',
+    data:{labels:sorted,datasets:[{
+      label:'Incidents',data:sorted.map(c=>cc[c]),
+      backgroundColor:sorted.map(c=>CAUSE_COLORS[c]+'cc'),
+      borderColor:sorted.map(c=>CAUSE_COLORS[c]),
+      borderWidth:1,borderRadius:3,
+    }]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0',bodyColor:'#9090a8',
+          callbacks:{label:item=>'  Incidents: '+item.raw}
+        }
+      },
+      scales:{
+        x:{grid:{color:'#18182a'},border:{color:'#242434'},
+           ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+           title:{display:true,text:'# of Incidents',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}},
+        y:{grid:{display:false},border:{color:'#242434'},
+           ticks:{font:{family:"'Source Code Pro', monospace",size:12,weight:'600'}}}
+      }
+    },
+    plugins:[retTotalPlugin(TOTAL_RETIREMENTS)],
+  });
+})();
+
+// D8: Retirements by Driver
+(function(){
+  const {labels,datasets}=retStackedDatasets('driver');
+  new Chart(document.getElementById('chartD8').getContext('2d'),{
+    type:'bar',data:{labels,datasets},
+    options:retBarOpts('# of Incidents'),
+    plugins:[retTotalPlugin(TOTAL_RETIREMENTS)],
+  });
+})();
+
+// C5: Retirements by Constructor
+(function(){
+  const {labels,datasets}=retStackedDatasets('team');
+  new Chart(document.getElementById('chartC5').getContext('2d'),{
+    type:'bar',data:{labels,datasets},
+    options:retBarOpts('# of Incidents'),
+    plugins:[retTotalPlugin(TOTAL_RETIREMENTS)],
+  });
+})();
+
+// ═══ FG COMMUNITY DATA ═══
+
+// Cumulative member timeline (Launch/Added=+1, Left=-1)
+const FG_TIMELINE = [
+  {date:'2026-02-18', delta:91},
+  {date:'2026-02-19', delta:11},
+  {date:'2026-02-20', delta:5},
+  {date:'2026-02-23', delta:1},
+  {date:'2026-03-02', delta:1},
+  {date:'2026-03-03', delta:1},
+  {date:'2026-03-05', delta:5},
+  {date:'2026-03-09', delta:3},
+  {date:'2026-03-11', delta:4},
+  {date:'2026-03-13', delta:3},
+  {date:'2026-03-18', delta:3},
+  {date:'2026-03-23', delta:3},
+  {date:'2026-03-25', delta:4},
+];
+
+// Active-only Physical Location counts
+const FG_LOCATION = {
+  'London':16,'Costa Rica':12,'Houston':10,'Chicago':9,'Los Angeles':8,
+  'Denver':8,'New York':7,'Mexico City':7,'San Francisco':5,'Miami':5,
+  'Dallas':5,'Washington D.C.':5,'Boston':5,'Singapore':4,'Austin':3,
+  'Philadelphia':3,'Dubai':3,'Atlanta':2,'Remote - Oregon':2,'Nashville':2,
+  'Seattle':2,'Riyadh':2,'Birmingham':2,'Tokyo':1,'Toronto':1,'Bangkok':1,
+  'Vancouver':1,'Phoenix':1,'Remote - Maryland':1,'Morristown':1,'Munich':1,
+};
+
+// Active-only Region counts
+const FG_REGION = {
+  'South Central':19,'Latin America':19,'Europe':18,'Southwest':15,
+  'Southeast':14,'Northeast':14,'APME':11,'North Central':9,'Firmwide':8,'Northwest':8,
+};
+
+// Active-only Studio counts (full names)
+const FG_STUDIO = {
+  'CH-Work Flex':6,'MI-Miami':5,'LN-Lifestyle 2':5,'MO-Monterrey':5,
+  'HN-Work 4':4,'CR-Lifestyle Flex 1':4,'CR-Cities Flex':4,
+  'FW-Design Technology':3,'NY-Lifestyle 4':3,'HQEU-Admin':3,'DC-Lifestyle 3':3,
+  'FW-LOC Operations':3,'BN-Work Lifestyle Flex':3,'LN-Work Flex 2':3,'LN-Cities Flex 1':3,
+  'DN-Work Flex 1':3,
+  'AT-Work':2,'CR-Admin':2,'PH-Philadelphia':2,'HQAPME-Admin':2,'NA-Nashville':2,
+  'NY-Cities 2':2,'HN-Cities 1':2,'SE-Work':2,'DX-Admin':2,'RH-Lifestyle Flex 1':2,
+  'DN-Work Flex 2':2,'DN-Admin':2,'BH-Cities':2,'HQSC-Admin':2,'LA-Lifestyle 6':2,
+  'FW-Technology':1,'SF-Health 1':1,'TK-Admin':1,'HN-Admin':1,'LA-Lifestyle 4':1,
+  'LA-Lifestyle 5':1,'DL-Work 1':1,'TO-Lifestyle Flex':1,'SI-Lifestyle Flex 1':1,
+  'LA-Lifestyle 7':1,'HN-Lifestyle 3':1,'LA-Flex 1':1,'DC-Lifestyle Flex':1,
+  'BK-Lifestyle Flex 1':1,'VN-Vancouver':1,'AU-Lifestyle 1':1,'AU-Lifestyle 2':1,
+  'CR-Lifestyle Retail 1':1,'PX-Cities Lifestyle':1,'MX-Cities Flex':1,
+  'BN-Cities Health Flex':1,'DL-Cities':1,'SF-Strategy':1,'NY-Climate Action':1,
+  'CR-Lifestyle Flex 2':1,'CH-Work':1,'MX-Flex 1':1,'NJ-Work':1,'DT-Lifestyle Flex':1,
+  'DX-Cities':1,'BN-Admin':1,'DL-Lifestyle 2':1,'NY-Cities 5':1,'FW-Legal':1,
+  'DN-Cities 1':1,'SI-Admin':1,'SF-Cities 1':1,'LN-Lifestyle 1':1,
+  'LN-Strategy Flex':1,'HQNW-Admin':1,'DL-Lifestyle 3':1,'HQSE-Admin':1,
+  'HN-Lifestyle 2':1,'CH-Lifestyle 2':1,'SF-Work 4':1,
+};
+
+// Active-only Primary Role (top named >=2, rest grouped)
+const FG_ROLE = {
+  'Technical Designer':20,'Architect':17,'Designer':13,'Design Manager':10,
+  'Design Director':7,'Interior Designer':6,'Studio Director':4,
+  'Project Architect':3,'Architectural Assistant':3,'Senior Project Architect':3,
+  'Technical Director':2,'Marketing Specialist':2,'Other':45,
+};
+
+// Active-only Appointment counts
+const FG_APPOINTMENT = {
+  'Untitled':74,'Associate':33,'Senior Associate':17,'Principal':11,
+};
+
+const FG_TOTAL_MEMBERS = 135;
+
+// All-time EVENT participation (for pie chart — includes all who ever joined)
+const FG_EVENT_PIE = {
+  'Launch':    71,
+  'Added':     64,
+  'Left':       7,
+  'Departed':   1,
+};
+
+// ── Shared FG color palette (neutral blue-teal range, distinct from F1 palette)
+const FG_COLORS = [
+  '#4FC3F7','#29B6F6','#03A9F4','#039BE5','#0288D1',
+  '#0277BD','#01579B','#80DEEA','#4DD0E1','#26C6DA',
+  '#00BCD4','#00ACC1','#0097A7','#00838F','#006064',
+  '#80CBC4','#4DB6AC','#26A69A','#009688','#00897B',
+  '#00796B','#00695C','#A5D6A7','#66BB6A','#43A047',
+  '#388E3C','#2E7D32','#C5E1A5','#9CCC65','#7CB342',
+  '#558B2F','#33691E','#F0F4C3','#DCE775','#D4E157',
+];
+
+function fgColor(i){ return FG_COLORS[i % FG_COLORS.length]; }
+
+// Plugin: total count card in upper-right (reuse retTotalPlugin pattern but parameterized label)
+function fgTotalPlugin(total, label) {
+  return {
+    id: 'fgTotal',
+    afterDraw(chart) {
+      const {ctx, chartArea:{right, bottom}} = chart;
+      const pad = 14;
+      ctx.save();
+      const lbl1 = label || 'MEMBERS';
+      const lbl2 = String(total);
+      ctx.font = '600 11px "Source Code Pro", monospace';
+      const w1 = ctx.measureText(lbl1).width;
+      ctx.font = '700 38px "Source Code Pro", monospace';
+      const w2 = ctx.measureText(lbl2).width;
+      const boxW = Math.max(w1, w2) + pad * 2;
+      const boxH = 80;
+      const bx = right - boxW - 10;
+      const by = bottom - boxH - 10;
+      ctx.fillStyle = 'rgba(10,10,20,0.78)';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#242434';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#60607a';
+      ctx.font = '600 11px "Source Code Pro", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(lbl1, bx + boxW / 2, by + 22);
+      ctx.fillStyle = '#e4e4f0';
+      ctx.font = '700 38px "Source Code Pro", monospace';
+      ctx.fillText(lbl2, bx + boxW / 2, by + 66);
+      ctx.restore();
+    }
+  };
+}
+
+// Shared hbar options for FG charts
+function fgHbarOpts(xLabel) {
+  return {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+        titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+        bodyFont:{family:"'Source Code Pro', monospace",size:11},
+        titleColor:'#e4e4f0', bodyColor:'#9090a8',
+        callbacks:{ label: item => '  Members: '+item.raw }
+      }
+    },
+    scales: {
+      x: { grid:{color:'#18182a'}, border:{color:'#242434'},
+           ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+           title:{display:true,text:xLabel,font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'} },
+      y: { grid:{display:false}, border:{color:'#242434'},
+           ticks:{font:{family:"'Source Code Pro', monospace",size:11,weight:'600'}} }
+    }
+  };
+}
+
+// FG0: Cumulative Member Growth (line chart)
+(function(){
+  let cum = 0;
+  const labels = [], data = [];
+  FG_TIMELINE.forEach(pt => {
+    cum += pt.delta;
+    labels.push(pt.date);
+    data.push(cum);
+  });
+  new Chart(document.getElementById('chartFG0').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Members',
+        data,
+        borderColor: '#4FC3F7',
+        backgroundColor: '#4FC3F718',
+        pointBackgroundColor: '#4FC3F7',
+        pointBorderColor: '#07070c',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 9,
+        borderWidth: 2,
+        tension: 0.2,
+        fill: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0', bodyColor:'#9090a8',
+          callbacks: {
+            title: items => items[0].label,
+            label: item => '  Total Members: '+item.raw,
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'#18182a'}, border:{color:'#242434'},
+             ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'},maxRotation:30} },
+        y: { grid:{color:'#18182a'}, border:{color:'#242434'},
+             min: 80,
+             ticks:{font:{family:"'Source Code Pro', monospace",size:11}},
+             title:{display:true,text:'Member Count',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'} }
+      }
+    },
+    plugins: [fgTotalPlugin(FG_TOTAL_MEMBERS, 'CURRENT')],
+  });
+})();
+
+// Helper: build sorted hbar chart from object {label:count}
+function buildFgHbar(canvasId, dataObj, cardLabel, countOverride) {
+  const entries = Object.entries(dataObj).sort((a,b) => b[1]-a[1]);
+  const labels = entries.map(e=>e[0]);
+  const values = entries.map(e=>e[1]);
+  const uniqueCount = countOverride !== undefined ? countOverride : labels.length;
+  new Chart(document.getElementById(canvasId).getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Members',
+        data: values,
+        backgroundColor: labels.map((_,i) => fgColor(i)+'cc'),
+        borderColor: labels.map((_,i) => fgColor(i)),
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: fgHbarOpts('# of Members'),
+    plugins: [fgTotalPlugin(uniqueCount, cardLabel || 'GROUPS')],
+  });
+}
+
+buildFgHbar('chartFG1', FG_LOCATION,    'LOCATIONS');
+buildFgHbar('chartFG2', FG_REGION,      'REGIONS');
+buildFgHbar('chartFG3', FG_STUDIO,      'STUDIOS');
+buildFgHbar('chartFG4', FG_ROLE, 'ROLES', 57);
+// Appointment: explicit gradient light→dark blue, Untitled lightest → Principal darkest
+(function(){
+  const apptColors = {
+    'Untitled':   '#A8D8EA',
+    'Associate':  '#4A90C4',
+    'Senior Associate': '#1A5FA8',
+    'Principal':  '#0A2D6E',
+  };
+  const entries = Object.entries(FG_APPOINTMENT).sort((a,b) => b[1]-a[1]);
+  const labels = entries.map(e=>e[0]);
+  const values = entries.map(e=>e[1]);
+  new Chart(document.getElementById('chartFG5').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets:[{
+        label:'Members',
+        data: values,
+        backgroundColor: labels.map(l=>(apptColors[l]||'#4A90C4')+'cc'),
+        borderColor: labels.map(l=>apptColors[l]||'#4A90C4'),
+        borderWidth:1, borderRadius:2,
+      }]
+    },
+    options: fgHbarOpts('# of Members'),
+    plugins: [fgTotalPlugin(labels.length, 'LEVELS')],
+  });
+})();
+
+// FG6: All-time participation pie (Launch/Added = blue-teal, Left = red shades)
+(function(){
+  const labels = Object.keys(FG_EVENT_PIE);
+  const values = Object.values(FG_EVENT_PIE);
+  const total = values.reduce((a,b)=>a+b,0);
+  const colors = {
+    'Launch':   '#4FC3F7',
+    'Added':    '#00897B',
+    'Left':     '#C62828',
+    'Departed': '#8B0000',
+  };
+  const bgColors = labels.map(l => (colors[l]||'#888888')+'cc');
+  const borderColors = labels.map(l => colors[l]||'#888888');
+
+  new Chart(document.getElementById('chartFG6').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets:[{ data:values, backgroundColor:bgColors, borderColor:borderColors, borderWidth:1, hoverOffset:8 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'50%',
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0', bodyColor:'#9090a8',
+          callbacks:{ label:item=>{
+            const pct = ((item.raw/total)*100).toFixed(1);
+            return '  '+item.label+': '+item.raw+' ('+pct+'%)';
+          }}
+        }
+      }
+    },
+    plugins:[fgTotalPlugin(total,'TOTAL EVER')],
+  });
+
+  const wrap = document.getElementById('legendFG6');
+  labels.forEach((lbl,i)=>{
+    const el = document.createElement('div');
+    el.className = 'pie-legend-item';
+    el.innerHTML = '<span class="pie-legend-dot" style="background:'+colors[lbl]+'"></span>'+lbl+': '+values[i];
+    wrap.appendChild(el);
+  });
+})();
+</script>
+
+<div id="last-updated-stamp" style="
+  position:fixed;
+  bottom:14px;
+  right:18px;
+  font-family:'Source Code Pro',monospace;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1px;
+  color:#60607a;
+  pointer-events:none;
+  z-index:999;
+  text-transform:uppercase;
+"></div>
+<script>
+  (function(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const ts = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
+      +' \u00b7 '+pad(d.getHours())+':'+pad(d.getMinutes());
+    document.getElementById('last-updated-stamp').textContent = 'Last Updated \u00b7 '+ts;
+  })();
+</script>
+</body>
+</html>
