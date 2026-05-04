@@ -278,8 +278,8 @@ canvas { width: 100% !important; max-width: 100%; }
     <div class="header-title">2026 Season Analytics</div>
   </div>
   <div class="header-meta">
-    <div>Data through <strong>Round 3 &mdash; Japanese GP</strong></div>
-    <div>R4 Bahrain/Saudi cancelled &mdash; <strong>Next: Miami R4 May 1&ndash;3</strong> &nbsp;&middot;&nbsp; 22 Rounds Total</div>
+    <div>Data through <strong>Round 4 &mdash; Miami GP</strong></div>
+    <div>R5 Canada &mdash; <strong>May 22&ndash;24</strong> &nbsp;&middot;&nbsp; 22 Rounds Total</div>
   </div>
 </header>
 
@@ -303,13 +303,16 @@ canvas { width: 100% !important; max-width: 100%; }
     <div class="sub-tab" data-sub="d6">Points Finishes</div>
     <div class="sub-tab" data-sub="d7">Points Share</div>
     <div class="sub-tab" data-sub="d8">Retirements</div>
+    <div class="sub-tab" data-sub="d9">Penalty Incidents</div>
+    <div class="sub-tab" data-sub="d10">Penalty Details</div>
   </div>
   <div class="main">
     <div class="rounds-bar">
       <span class="round-pill done">R1 &middot; Australia &#10003;</span>
       <span class="round-pill done">R2 &middot; China &#10003;</span>
       <span class="round-pill done">R3 &middot; Japan &#10003;</span>
-      <span class="round-pill next">R4 &middot; Miami &middot; May 1&ndash;3</span>
+      <span class="round-pill done">R4 &middot; Miami &#10003;</span>
+      <span class="round-pill next">R5 &middot; Canada &middot; May 22&ndash;24</span>
     </div>
     <div class="sub-panel active" id="panel-d0">
       <div class="panel-title">Driver Points &mdash; Cumulative</div>
@@ -364,6 +367,23 @@ canvas { width: 100% !important; max-width: 100%; }
       <div class="legend-wrap" id="legendD8ret"></div>
       <div class="note">Includes both race retirements (DNF) and non-starters (DNS). Sources: race reports R1 Australia &amp; R2 China.</div>
     </div>
+    <div class="sub-panel" id="panel-d9">
+      <div class="panel-title">Penalty Incidents by Driver</div>
+      <div class="panel-sub">All on-track and qualifying penalties R1&ndash;R4, colored by type. Hover for round and reason detail.</div>
+      <div class="chart-wrap bar"><canvas id="chartD9"></canvas></div>
+      <div class="legend-wrap" id="legendD9pen"></div>
+      <div class="note">Includes race-day time penalties, qualifying disqualifications, grid penalties, and pit lane starts. Sprint weekend penalties included. Penalty points (super licence) not shown as they are carry-over from 2025.</div>
+    </div>
+    <div class="sub-panel" id="panel-d10">
+      <div class="panel-title">Cumulative Penalty Detail by Driver</div>
+      <div class="panel-sub">Time penalties (seconds) and grid positions lost, shown as separate clustered bars per driver.</div>
+      <div class="panel-title" style="font-size:10px;letter-spacing:2px;margin-top:18px;">Cumulative Time Penalties (seconds)</div>
+      <div class="chart-wrap bar"><canvas id="chartD10a"></canvas></div>
+      <div class="panel-title" style="font-size:10px;letter-spacing:2px;margin-top:22px;">Cumulative Grid Positions Lost</div>
+      <div class="panel-sub">Grid drops + pit lane starts (counted as 5+ positions). DSQ from qualifying counted as full grid.</div>
+      <div class="chart-wrap bar"><canvas id="chartD10b"></canvas></div>
+      <div class="note">Pit lane start counted as 5 grid positions for visualisation purposes. DSQ from qualifying (Hadjar R4) counted as 20 grid positions lost.</div>
+    </div>
   </div>
 </div>
 
@@ -382,7 +402,8 @@ canvas { width: 100% !important; max-width: 100%; }
       <span class="round-pill done">R1 &middot; Australia &#10003;</span>
       <span class="round-pill done">R2 &middot; China &#10003;</span>
       <span class="round-pill done">R3 &middot; Japan &#10003;</span>
-      <span class="round-pill next">R4 &middot; Miami &middot; May 1&ndash;3</span>
+      <span class="round-pill done">R4 &middot; Miami &#10003;</span>
+      <span class="round-pill next">R5 &middot; Canada &middot; May 22&ndash;24</span>
     </div>
     <div class="sub-panel active" id="panel-c0">
       <div class="panel-title">Constructor Points &mdash; Cumulative</div>
@@ -436,7 +457,8 @@ canvas { width: 100% !important; max-width: 100%; }
       <span class="round-pill done">R1 &middot; Australia &#10003;</span>
       <span class="round-pill done">R2 &middot; China &#10003;</span>
       <span class="round-pill done">R3 &middot; Japan &#10003;</span>
-      <span class="round-pill next">R4 &middot; Miami &middot; May 1&ndash;3</span>
+      <span class="round-pill done">R4 &middot; Miami &#10003;</span>
+      <span class="round-pill next">R5 &middot; Canada &middot; May 22&ndash;24</span>
     </div>
     <div class="sub-panel active" id="panel-g0">
       <div class="panel-title">Cumulative Points Share &mdash; by Engine Supplier</div>
@@ -587,8 +609,8 @@ canvas { width: 100% !important; max-width: 100%; }
 <script>
 // ═══ DATA ═══
 
-const ROUNDS = ['R1 AUS', 'R2 CHN', 'R3 JPN'];
-const ROUNDS_LABEL = ['R1 \u00b7 Australia', 'R2 \u00b7 China', 'R3 \u00b7 Japan'];
+const ROUNDS = ['R1 AUS', 'R2 CHN', 'R3 JPN', 'R4 MIA'];
+const ROUNDS_LABEL = ['R1 \u00b7 Australia', 'R2 \u00b7 China', 'R3 \u00b7 Japan', 'R4 \u00b7 Miami'];
 
 // Drivers marked for dashed lines / hatched bars
 const DASH_DRIVERS = new Set(['Antonelli','Hadjar','Bortoleto','Perez','Lindblad','Piastri','Stroll','Leclerc','Albon','Ocon','Colapinto']);
@@ -619,21 +641,21 @@ const driverCountry = {
 };
 
 const driverPoints = {
-  'Russell':[25,26,0],'Antonelli':[18,29,25],'Leclerc':[15,19,15],'Hamilton':[12,21,8],
-  'Bearman':[6,11,0],'Norris':[10,5,10],'Gasly':[1,8,6],'Verstappen':[8,0,4],
-  'Lawson':[0,8,2],'Lindblad':[4,0,0],'Hadjar':[0,4,0],'Piastri':[0,3,18],
-  'Sainz':[0,2,0],'Bortoleto':[2,0,0],'Colapinto':[0,1,0],'Ocon':[0,0,1],
-  'Hulkenberg':[0,0,0],'Albon':[0,0,0],'Bottas':[0,0,0],'Perez':[0,0,0],
-  'Alonso':[0,0,0],'Stroll':[0,0,0],
+  'Russell':[25,26,0,12],'Antonelli':[18,29,25,25],'Leclerc':[15,19,15,4],'Hamilton':[12,21,8,8],
+  'Bearman':[6,11,0,0],'Norris':[10,5,10,18],'Gasly':[1,8,6,0],'Verstappen':[8,0,4,10],
+  'Lawson':[0,8,2,0],'Lindblad':[4,0,0,0],'Hadjar':[0,4,0,0],'Piastri':[0,3,18,15],
+  'Sainz':[0,2,0,2],'Bortoleto':[2,0,0,0],'Colapinto':[0,1,0,6],'Ocon':[0,0,1,0],
+  'Hulkenberg':[0,0,0,0],'Albon':[0,0,0,1],'Bottas':[0,0,0,0],'Perez':[0,0,0,0],
+  'Alonso':[0,0,0,0],'Stroll':[0,0,0,0],
 };
 
 const driverFinish = {
-  'Russell':[1,2,4],'Antonelli':[2,1,1],'Leclerc':[3,4,3],'Hamilton':[4,3,6],
-  'Bearman':[7,5,20],'Norris':[5,20,5],'Gasly':[10,6,7],'Verstappen':[6,20,8],
-  'Lawson':[13,7,9],'Lindblad':[8,12,14],'Hadjar':[20,8,12],'Piastri':[20,20,2],
-  'Sainz':[15,9,15],'Bortoleto':[9,20,13],'Colapinto':[14,10,16],'Ocon':[11,14,10],
-  'Hulkenberg':[20,11,11],'Albon':[12,20,20],'Bottas':[19,13,19],'Perez':[16,15,17],
-  'Alonso':[18,20,18],'Stroll':[17,20,20],
+  'Russell':[1,2,4,4],'Antonelli':[2,1,1,1],'Leclerc':[3,4,3,8],'Hamilton':[4,3,6,6],
+  'Bearman':[7,5,20,11],'Norris':[5,20,5,2],'Gasly':[10,6,7,20],'Verstappen':[6,20,8,5],
+  'Lawson':[13,7,9,20],'Lindblad':[8,12,14,14],'Hadjar':[20,8,12,20],'Piastri':[20,20,2,3],
+  'Sainz':[15,9,15,9],'Bortoleto':[9,20,13,12],'Colapinto':[14,10,16,7],'Ocon':[11,14,10,13],
+  'Hulkenberg':[20,11,11,20],'Albon':[12,20,20,10],'Bottas':[19,13,19,18],'Perez':[16,15,17,16],
+  'Alonso':[18,20,18,15],'Stroll':[17,20,20,17],
 };
 
 const teamColors = {
@@ -1138,6 +1160,10 @@ const retirementLog = [
   {driver:'Verstappen',team:'Red Bull',     round:'R2 CHN', cause:'Power Unit'},
   {driver:'Stroll',    team:'Aston Martin', round:'R3 JPN', cause:'Mechanical'},
   {driver:'Bearman',   team:'Haas',         round:'R3 JPN', cause:'Accident'},
+  {driver:'Hadjar',    team:'Red Bull',     round:'R4 MIA', cause:'Accident'},
+  {driver:'Gasly',     team:'Alpine',       round:'R4 MIA', cause:'Accident'},
+  {driver:'Hulkenberg',team:'Audi',         round:'R4 MIA', cause:'Mechanical'},
+  {driver:'Lawson',    team:'Racing Bulls',  round:'R4 MIA', cause:'Mechanical'},
 ];
 
 function retStackedDatasets(groupKey) {
@@ -1275,6 +1301,182 @@ const TOTAL_RETIREMENTS = retirementLog.length;
     type:'bar',data:{labels,datasets},
     options:retBarOpts('# of Incidents'),
     plugins:[retTotalPlugin(TOTAL_RETIREMENTS)],
+  });
+})();
+
+// ═══ PENALTY DATA ═══
+
+const PEN_COLORS = {
+  'Time Penalty':   '#E8A020',
+  'Grid Penalty':   '#3A9AD9',
+  'Pit Lane Start': '#9B6DD0',
+  'DSQ \u2014 Quali': '#E8002D',
+};
+const PEN_TYPES = Object.keys(PEN_COLORS);
+
+// Full penalty log R1–R4 (race-day and qualifying penalties)
+const penaltyLog = [
+  {driver:'Perez',     team:'Cadillac',     round:'R2 CHN', type:'Time Penalty',     seconds:5,  gridLost:0,  reason:'Safety car infringement (no position change)'},
+  {driver:'Albon',     team:'Williams',     round:'R2 CHN', type:'Pit Lane Start',   seconds:0,  gridLost:5,  reason:'Car modified under parc ferme conditions'},
+  {driver:'Albon',     team:'Williams',     round:'R4 MIA', type:'Grid Penalty',     seconds:0,  gridLost:5,  reason:'Track limits breach in SQ1 (sprint qualifying) — breach detected after SQ2'},
+  {driver:'Lindblad',  team:'Racing Bulls', round:'R4 MIA', type:'Pit Lane Start',   seconds:0,  gridLost:5,  reason:'Parc ferme breach — car left uncovered; team also used curfew exemption'},
+  {driver:'Hadjar',    team:'Red Bull',     round:'R4 MIA', type:'DSQ \u2014 Quali', seconds:0,  gridLost:20, reason:'Technical breach: PU element and control electronics replaced under parc ferme'},
+  {driver:'Verstappen',team:'Red Bull',     round:'R4 MIA', type:'Time Penalty',     seconds:5,  gridLost:0,  reason:'Crossed white line at pit exit (no position change)'},
+  {driver:'Leclerc',   team:'Ferrari',      round:'R4 MIA', type:'Time Penalty',     seconds:20, gridLost:0,  reason:'Repeated track limits violations after last-lap spin; dropped P6\u2192P8'},
+];
+
+function penBarOpts(yLabel) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false},
+      tooltip:{
+        backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
+        titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+        bodyFont:{family:"'Source Code Pro', monospace",size:11},
+        titleColor:'#e4e4f0', bodyColor:'#9090a8',
+      }
+    },
+    scales:{
+      x:{ grid:{display:false}, border:{color:'#242434'},
+          ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'}} },
+      y:{ grid:{color:'#18182a'}, border:{color:'#242434'},
+          ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+          title:{display:true,text:yLabel,font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'} }
+    }
+  };
+}
+
+// D9: Penalty Incidents — stacked by type
+(function(){
+  const byDriver = {};
+  penaltyLog.forEach(p => {
+    if(!byDriver[p.driver]) { byDriver[p.driver]={}; PEN_TYPES.forEach(t=>byDriver[p.driver][t]=[]); }
+    byDriver[p.driver][p.type].push(p);
+  });
+  const driverList = Object.keys(byDriver).sort((a,b)=>
+    penaltyLog.filter(p=>p.driver===b).length - penaltyLog.filter(p=>p.driver===a).length
+  );
+  const datasets = PEN_TYPES.map(type=>({
+    label:type,
+    data:driverList.map(d=>byDriver[d][type].length),
+    backgroundColor:PEN_COLORS[type]+'cc',
+    borderColor:PEN_COLORS[type],
+    borderWidth:1, borderRadius:2, stack:'s',
+    _details:driverList.map(d=>byDriver[d][type]),
+  }));
+  new Chart(document.getElementById('chartD9').getContext('2d'),{
+    type:'bar',
+    data:{labels:driverList, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,position:'top',labels:{color:'#9090a8',font:{family:"'Source Code Pro', monospace",size:10},boxWidth:10,padding:14}},
+        tooltip:{
+          backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0',bodyColor:'#9090a8',
+          mode:'index',intersect:false,
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>{
+              const details=item.dataset._details[item.dataIndex];
+              if(!details||!details.length) return null;
+              return details.map(d=>`  [${d.round}] ${d.type}: ${d.reason}`);
+            },
+            filter:item=>item.raw>0,
+          }
+        }
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},border:{color:'#242434'},
+           ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'}}},
+        y:{stacked:true,grid:{color:'#18182a'},border:{color:'#242434'},
+           ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+           title:{display:true,text:'# of Penalties',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}}
+      }
+    }
+  });
+  const wrap=document.getElementById('legendD9pen');
+  PEN_TYPES.forEach(t=>{
+    const el=document.createElement('div');
+    el.className='legend-item';
+    el.innerHTML=`<span class="legend-dot" style="background:${PEN_COLORS[t]}"></span>${t}`;
+    wrap.appendChild(el);
+  });
+})();
+
+// D10a: Cumulative Time Penalties
+(function(){
+  const tp={};
+  penaltyLog.filter(p=>p.seconds>0).forEach(p=>{ tp[p.driver]=(tp[p.driver]||0)+p.seconds; });
+  const sorted=Object.entries(tp).sort((a,b)=>b[1]-a[1]);
+  const labels=sorted.map(e=>e[0]);
+  const values=sorted.map(e=>e[1]);
+  new Chart(document.getElementById('chartD10a').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Seconds',data:values,
+      backgroundColor:labels.map(l=>(teamColors[driverTeam[l]]||'#888')+'cc'),
+      borderColor:labels.map(l=>teamColors[driverTeam[l]]||'#888'),
+      borderWidth:1,borderRadius:3}]},
+    options:{...penBarOpts('Cumulative Seconds'),
+      plugins:{...penBarOpts('Cumulative Seconds').plugins,
+        tooltip:{
+          backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0',bodyColor:'#9090a8',
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>{
+              const detail=penaltyLog.filter(p=>p.driver===item.label&&p.seconds>0)
+                .map(p=>`  [${p.round}] ${p.seconds}s \u2014 ${p.reason}`);
+              return[`  Total: ${item.raw}s`,...detail];
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+
+// D10b: Cumulative Grid Positions Lost
+(function(){
+  const gp={};
+  penaltyLog.filter(p=>p.gridLost>0).forEach(p=>{ gp[p.driver]=(gp[p.driver]||0)+p.gridLost; });
+  const sorted=Object.entries(gp).sort((a,b)=>b[1]-a[1]);
+  const labels=sorted.map(e=>e[0]);
+  const values=sorted.map(e=>e[1]);
+  const getColor=l=>{
+    const pens=penaltyLog.filter(p=>p.driver===l&&p.gridLost>0);
+    if(pens.some(p=>p.type==='DSQ \u2014 Quali')) return PEN_COLORS['DSQ \u2014 Quali'];
+    if(pens.some(p=>p.type==='Pit Lane Start')) return PEN_COLORS['Pit Lane Start'];
+    return PEN_COLORS['Grid Penalty'];
+  };
+  new Chart(document.getElementById('chartD10b').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Grid Positions',data:values,
+      backgroundColor:labels.map(l=>getColor(l)+'cc'),
+      borderColor:labels.map(l=>getColor(l)),
+      borderWidth:1,borderRadius:3}]},
+    options:{...penBarOpts('Grid Positions Lost'),
+      plugins:{...penBarOpts('Grid Positions Lost').plugins,
+        tooltip:{
+          backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+          bodyFont:{family:"'Source Code Pro', monospace",size:11},
+          titleColor:'#e4e4f0',bodyColor:'#9090a8',
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>{
+              const detail=penaltyLog.filter(p=>p.driver===item.label&&p.gridLost>0)
+                .map(p=>`  [${p.round}] ${p.type} (${p.gridLost===20?'DSQ':p.type==='Pit Lane Start'?'pit lane':p.gridLost+'pl'}) \u2014 ${p.reason}`);
+              return[`  Total positions lost: ${item.raw}`,...detail];
+            }
+          }
+        }
+      }
+    }
   });
 })();
 
@@ -1960,13 +2162,7 @@ buildPollTeamBar('chartP2c',
   text-transform:uppercase;
 "></div>
 <script>
-  (function(){
-    const d = new Date();
-    const pad = n => String(n).padStart(2,'0');
-    const ts = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
-      +' \u00b7 '+pad(d.getHours())+':'+pad(d.getMinutes());
-    document.getElementById('last-updated-stamp').textContent = 'Last Updated \u00b7 '+ts;
-  })();
+  document.getElementById('last-updated-stamp').textContent = 'Last Updated · 2026-05-03 · R4 Miami GP';
 </script>
 </body>
 </html>
