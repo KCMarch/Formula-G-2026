@@ -376,13 +376,9 @@ canvas { width: 100% !important; max-width: 100%; }
     </div>
     <div class="sub-panel" id="panel-d10">
       <div class="panel-title">Cumulative Penalty Detail by Driver</div>
-      <div class="panel-sub">Time penalties (seconds) and grid positions lost, shown as separate clustered bars per driver.</div>
-      <div class="panel-title" style="font-size:10px;letter-spacing:2px;margin-top:18px;">Cumulative Time Penalties (seconds)</div>
+      <div class="panel-sub">Paired bars per driver — time penalties (seconds, solid) and grid positions lost (hatched). Y-axis scaled to the largest value across both metrics. Colors match constructor. Pit lane start = 5 grid positions; DSQ from qualifying = 20.</div>
       <div class="chart-wrap bar"><canvas id="chartD10a"></canvas></div>
-      <div class="panel-title" style="font-size:10px;letter-spacing:2px;margin-top:22px;">Cumulative Grid Positions Lost</div>
-      <div class="panel-sub">Grid drops + pit lane starts (counted as 5+ positions). DSQ from qualifying counted as full grid.</div>
-      <div class="chart-wrap bar"><canvas id="chartD10b"></canvas></div>
-      <div class="note">Pit lane start counted as 5 grid positions for visualisation purposes. DSQ from qualifying (Hadjar R4) counted as 20 grid positions lost.</div>
+      <div class="note">Pit lane start counted as 5 grid positions. DSQ from qualifying (Hadjar R4) counted as 20 grid positions lost.</div>
     </div>
   </div>
 </div>
@@ -461,8 +457,8 @@ canvas { width: 100% !important; max-width: 100%; }
       <span class="round-pill next">R5 &middot; Canada &middot; May 22&ndash;24</span>
     </div>
     <div class="sub-panel active" id="panel-g0">
-      <div class="panel-title">Cumulative Points Share &mdash; by Engine Supplier</div>
-      <div class="panel-sub">Total points grouped by power unit manufacturer through R2.</div>
+      <div class="panel-title">Average Points Share &mdash; by Engine Supplier</div>
+      <div class="panel-sub">Total points per engine supplier divided by number of teams using that supplier. Represents average team performance rather than raw cumulative totals.</div>
       <div class="chart-wrap pie"><canvas id="chartG0"></canvas></div>
       <div class="pie-legend" id="legendG0"></div>
       <div class="note">Mercedes (Mercedes, McLaren, Williams, Alpine) &middot; Ferrari (Ferrari, Haas, Cadillac) &middot; Red Bull Ford (Red Bull, Racing Bulls) &middot; Honda (Aston Martin) &middot; Audi (Audi)</div>
@@ -539,6 +535,7 @@ canvas { width: 100% !important; max-width: 100%; }
     <div class="sub-tab active" data-sub="p0">General</div>
     <div class="sub-tab" data-sub="p1">Season</div>
     <div class="sub-tab" data-sub="p2">Race 1</div>
+    <div class="sub-tab" data-sub="p3">April Break</div>
   </div>
   <div class="main">
 
@@ -601,6 +598,37 @@ canvas { width: 100% !important; max-width: 100%; }
       <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">Which driver is going to be the first DNF of the season?</div>
       <div class="panel-sub">&#10003; Actual first DNF/DNS: <strong style="color:#f5c842">Oscar Piastri</strong> (DNS &mdash; crash on reconnaissance lap, R1 Australia) &nbsp;&middot;&nbsp; <strong>0 of 42 respondents (0.0%)</strong> predicted Piastri &mdash; Lance Stroll was the overwhelming favourite with 24 votes.</div>
       <div class="chart-wrap bar"><canvas id="chartP2c"></canvas></div>
+    </div>
+
+    <!-- P3: April Break Poll -->
+    <div class="sub-panel" id="panel-p3">
+      <div class="panel-title">April Break Poll</div>
+      <div class="panel-sub">17 responses &nbsp;&middot;&nbsp; Taken during the April break between R3 Japan and R4 Miami.</div>
+
+      <div class="panel-title" style="margin-top:22px;font-size:11px;letter-spacing:2px;">1. How would you summarize your feelings about the Formula 1 2026 Season so far?</div>
+      <div class="panel-sub">Options shown in original survey order (Strongly Dislike &rarr; Strongly Like). All options shown including zero responses.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP3a"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">2. What do you predict will be the defining headline for the remainder of the season?</div>
+      <div class="panel-sub">Multi-select. Items with 2 or more responses shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP3b"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">3. What is your primary motivation for following Formula 1?</div>
+      <div class="panel-sub">Sorted by most to least responses.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP3c"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">4. What is your dream job in F1?</div>
+      <div class="panel-sub">Sorted by most to least responses.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP3d"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">5. Which of these F1 Podcasts do you regularly listen to and recommend to others?</div>
+      <div class="panel-sub">Multi-select. Sorted by most to least responses.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP3e"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">6. Which of these books about Formula 1 have you read, and highly recommend?</div>
+      <div class="panel-sub">Multi-select. Sorted by most to least responses.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP3f"></canvas></div>
+
     </div>
 
   </div>
@@ -1088,8 +1116,11 @@ function buildPie(canvasId,legendId,labels,values,colors,dashFlags){
 (function(){
   const engines=Object.keys(engineColors);
   const ep={};
+  const engineTeamCount = {'Mercedes':4,'Ferrari':3,'Red Bull Ford':2,'Honda':1,'Audi':1};
   engines.forEach(e=>ep[e]=0);
   drivers.forEach(d=>{ const e=teamEngine[driverTeam[d]]; ep[e]=(ep[e]||0)+totD(d); });
+  // Divide by number of teams per supplier to get average per team
+  engines.forEach(e=>{ if(engineTeamCount[e]) ep[e]=Math.round(ep[e]/engineTeamCount[e]*10)/10; });
   const sorted=engines.sort((a,b)=>ep[b]-ep[a]).filter(e=>ep[e]>0);
   buildPie('chartG0','legendG0',sorted,sorted.map(e=>ep[e]),sorted.map(e=>engineColors[e]));
 })();
@@ -1406,78 +1437,92 @@ function penBarOpts(yLabel) {
   });
 })();
 
-// D10a: Cumulative Time Penalties
+// D10: Combined paired bar — time penalties (solid) + grid positions lost (hatched)
 (function(){
-  const tp={};
+  // Build per-driver totals
+  const tp={}, gp={};
   penaltyLog.filter(p=>p.seconds>0).forEach(p=>{ tp[p.driver]=(tp[p.driver]||0)+p.seconds; });
-  const sorted=Object.entries(tp).sort((a,b)=>b[1]-a[1]);
-  const labels=sorted.map(e=>e[0]);
-  const values=sorted.map(e=>e[1]);
+  penaltyLog.filter(p=>p.gridLost>0).forEach(p=>{ gp[p.driver]=(gp[p.driver]||0)+p.gridLost; });
+
+  // Union of all penalised drivers, sorted by total severity (time + grid combined)
+  const allDrivers = [...new Set([...Object.keys(tp),...Object.keys(gp)])];
+  allDrivers.sort((a,b)=>((tp[b]||0)+(gp[b]||0))-((tp[a]||0)+(gp[a]||0)));
+
+  const timeVals  = allDrivers.map(d=>tp[d]||0);
+  const gridVals  = allDrivers.map(d=>gp[d]||0);
+  const maxY = Math.ceil(Math.max(...timeVals,...gridVals)*1.12); // shared axis, +12% headroom
+
+  // Solid fill per driver (team color) for time bars
+  const solidBg     = allDrivers.map(d=>(teamColors[driverTeam[d]]||'#888888')+'cc');
+  const solidBorder = allDrivers.map(d=> teamColors[driverTeam[d]]||'#888888');
+
+  // Hatched fill (canvas pattern) for grid bars — same team color, diagonal stripe
+  const hatchBg = allDrivers.map(d=>hatchPattern(teamColors[driverTeam[d]]||'#888888'));
+
   new Chart(document.getElementById('chartD10a').getContext('2d'),{
     type:'bar',
-    data:{labels,datasets:[{label:'Seconds',data:values,
-      backgroundColor:labels.map(l=>(teamColors[driverTeam[l]]||'#888')+'cc'),
-      borderColor:labels.map(l=>teamColors[driverTeam[l]]||'#888'),
-      borderWidth:1,borderRadius:3}]},
-    options:{...penBarOpts('Cumulative Seconds'),
-      plugins:{...penBarOpts('Cumulative Seconds').plugins,
+    data:{
+      labels: allDrivers,
+      datasets:[
+        {
+          label:'Time Penalty (s)',
+          data: timeVals,
+          backgroundColor: solidBg,
+          borderColor: solidBorder,
+          borderWidth:1, borderRadius:3,
+        },
+        {
+          label:'Grid Positions Lost',
+          data: gridVals,
+          backgroundColor: hatchBg,
+          borderColor: solidBorder,
+          borderWidth:1, borderRadius:3,
+        },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
         tooltip:{
-          backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+          backgroundColor:'#0a0a14', borderColor:'#242434', borderWidth:1, padding:10,
           titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
           bodyFont:{family:"'Source Code Pro', monospace",size:11},
-          titleColor:'#e4e4f0',bodyColor:'#9090a8',
+          titleColor:'#e4e4f0', bodyColor:'#9090a8',
+          mode:'index', intersect:false,
           callbacks:{
-            title:items=>items[0].label,
+            title:items=>items[0].label+' \u2014 '+driverTeam[items[0].label],
             label:item=>{
-              const detail=penaltyLog.filter(p=>p.driver===item.label&&p.seconds>0)
-                .map(p=>`  [${p.round}] ${p.seconds}s \u2014 ${p.reason}`);
-              return[`  Total: ${item.raw}s`,...detail];
-            }
+              if(item.raw===0) return null;
+              if(item.datasetIndex===0){
+                const detail=penaltyLog.filter(p=>p.driver===item.label&&p.seconds>0)
+                  .map(p=>`    [${p.round}] ${p.seconds}s \u2014 ${p.reason}`);
+                return[`  Time Penalties: ${item.raw}s total`,...detail];
+              } else {
+                const detail=penaltyLog.filter(p=>p.driver===item.label&&p.gridLost>0)
+                  .map(p=>`    [${p.round}] ${p.gridLost===20?'DSQ (20)':p.type==='Pit Lane Start'?'Pit Lane (5)':p.gridLost+'pl'} \u2014 ${p.reason}`);
+                return[`  Grid Positions Lost: ${item.raw} total`,...detail];
+              }
+            },
+            filter:item=>item.raw>0,
           }
+        }
+      },
+      scales:{
+        x:{
+          grid:{display:false}, border:{color:'#242434'},
+          ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'}},
+        },
+        y:{
+          grid:{color:'#18182a'}, border:{color:'#242434'},
+          min:0, max:maxY,
+          ticks:{font:{family:"'Source Code Pro', monospace",size:11}},
+          title:{display:true,text:'Seconds / Grid Positions',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}
         }
       }
     }
   });
-})();
 
-// D10b: Cumulative Grid Positions Lost
-(function(){
-  const gp={};
-  penaltyLog.filter(p=>p.gridLost>0).forEach(p=>{ gp[p.driver]=(gp[p.driver]||0)+p.gridLost; });
-  const sorted=Object.entries(gp).sort((a,b)=>b[1]-a[1]);
-  const labels=sorted.map(e=>e[0]);
-  const values=sorted.map(e=>e[1]);
-  const getColor=l=>{
-    const pens=penaltyLog.filter(p=>p.driver===l&&p.gridLost>0);
-    if(pens.some(p=>p.type==='DSQ \u2014 Quali')) return PEN_COLORS['DSQ \u2014 Quali'];
-    if(pens.some(p=>p.type==='Pit Lane Start')) return PEN_COLORS['Pit Lane Start'];
-    return PEN_COLORS['Grid Penalty'];
-  };
-  new Chart(document.getElementById('chartD10b').getContext('2d'),{
-    type:'bar',
-    data:{labels,datasets:[{label:'Grid Positions',data:values,
-      backgroundColor:labels.map(l=>getColor(l)+'cc'),
-      borderColor:labels.map(l=>getColor(l)),
-      borderWidth:1,borderRadius:3}]},
-    options:{...penBarOpts('Grid Positions Lost'),
-      plugins:{...penBarOpts('Grid Positions Lost').plugins,
-        tooltip:{
-          backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
-          titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
-          bodyFont:{family:"'Source Code Pro', monospace",size:11},
-          titleColor:'#e4e4f0',bodyColor:'#9090a8',
-          callbacks:{
-            title:items=>items[0].label,
-            label:item=>{
-              const detail=penaltyLog.filter(p=>p.driver===item.label&&p.gridLost>0)
-                .map(p=>`  [${p.round}] ${p.type} (${p.gridLost===20?'DSQ':p.type==='Pit Lane Start'?'pit lane':p.gridLost+'pl'}) \u2014 ${p.reason}`);
-              return[`  Total positions lost: ${item.raw}`,...detail];
-            }
-          }
-        }
-      }
-    }
-  });
 })();
 
 // ═══ FG COMMUNITY DATA ═══
@@ -1927,12 +1972,12 @@ function driverColor(name) {
 
 // ── GENERAL ──
 buildPollTeamBar('chartP0a', {
-  'Lewis Hamilton':10,'Max Verstappen':6,'Lando Norris':6,'Charles Leclerc':5,
+  'Lewis Hamilton':10,'Max Verstappen':9,'Lando Norris':6,'Charles Leclerc':5,
   'Sergio Pérez':4,'Carlos Sainz':3,'Oscar Piastri':3,'George Russell':2,
   'Fernando Alonso':1,'Isack Hadjar':1,'Andrea Kimi Antonelli':1,
 });
 buildPollBar('chartP0b', {
-  'Ferrari':15,'McLaren':10,'Red Bull':5,'Mercedes':4,'Cadillac':3,'Williams':3,'Audi':2,
+  'Ferrari':15,'McLaren':10,'Red Bull':7,'Mercedes':5,'Cadillac':3,'Williams':3,'Audi':2,
 }, null, null);
 // Override colors for constructor chart with team colors
 (function(){
@@ -2146,6 +2191,154 @@ buildPollTeamBar('chartP2c',
     chart.update();
   }
 })();
+
+// ═══ APRIL BREAK POLL DATA ═══
+
+const AB_N = 17;
+const AB_ELIGIBLE = 135;
+const AB_PCT = (AB_N/AB_ELIGIBLE*100).toFixed(1)+'%';
+
+// Shared neutral color palette for non-F1-entity poll bars
+const AB_COLORS = [
+  '#00BFFF','#4FC3F7','#29B6F6','#0288D1','#01579B',
+  '#80DEEA','#26C6DA','#00ACC1','#00838F','#006064',
+  '#4DB6AC','#26A69A','#009688','#00897B','#00796B',
+  '#66BB6A','#43A047','#9CCC65','#7CB342','#558B2F',
+];
+function abColor(i){ return AB_COLORS[i%AB_COLORS.length]; }
+
+function abBarOpts(yLabel, horizontal){
+  const base = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#0a0a14',borderColor:'#242434',borderWidth:1,padding:10,
+        titleFont:{family:"'Source Code Pro', monospace",weight:'700',size:11},
+        bodyFont:{family:"'Source Code Pro', monospace",size:11},
+        titleColor:'#e4e4f0',bodyColor:'#9090a8',
+        callbacks:{
+          label:item=>`  Responses: ${item.raw} (${(item.raw/AB_N*100).toFixed(1)}%)`
+        }
+      }
+    },
+  };
+  if(horizontal){
+    return {...base,
+      indexAxis:'y',
+      scales:{
+        x:{grid:{color:'#18182a'},border:{color:'#242434'},
+           ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+           title:{display:true,text:'# of Responses',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}},
+        y:{grid:{display:false},border:{color:'#242434'},
+           ticks:{font:{family:"'Source Code Pro', monospace",size:11,weight:'600'},maxTicksLimit:20,callback:function(val){const lbl=this.getLabelForValue(val);if(lbl.length>45){const mid=lbl.lastIndexOf(' ',44);return[lbl.slice(0,mid),lbl.slice(mid+1)];}return lbl;}}}
+      }
+    };
+  }
+  return {...base,
+    scales:{
+      x:{grid:{display:false},border:{color:'#242434'},
+         ticks:{font:{family:"'Source Code Pro', monospace",size:10,weight:'600'},maxRotation:25}},
+      y:{grid:{color:'#18182a'},border:{color:'#242434'},
+         ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
+         title:{display:true,text:yLabel||'# of Responses',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}}
+    }
+  };
+}
+
+function buildAbBar(canvasId, labels, values, horizontal){
+  new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'bar',
+    data:{labels, datasets:[{
+      label:'Responses', data:values,
+      backgroundColor:labels.map((_,i)=>abColor(i)+'cc'),
+      borderColor:labels.map((_,i)=>abColor(i)),
+      borderWidth:1, borderRadius:2,
+    }]},
+    options: abBarOpts('# of Responses', horizontal),
+  });
+}
+
+// Q1: Feelings — exact survey order from image, all options including 0
+(function(){
+  const labels = [
+    "I don't have an opinion on the matter",
+    "This isn't real racing",
+    'More lows than highs so far',
+    'Too early to have strong feelings',
+    'Some bright spots, but still early days',
+    'The wheel-to-wheel racing has delivered',
+    "My driver/team has exceeded all expectations so I'm thrilled but could still be better overall",
+    'Best season opener in years, excited for the rest of the season!',
+  ];
+  const data = {
+    "I don't have an opinion on the matter": 0,
+    "This isn't real racing": 1,
+    'More lows than highs so far': 3,
+    'Too early to have strong feelings': 3,
+    'Some bright spots, but still early days': 5,
+    'The wheel-to-wheel racing has delivered': 2,
+    "My driver/team has exceeded all expectations so I'm thrilled but could still be better overall": 3,
+    'Best season opener in years, excited for the rest of the season!': 0,
+  };
+  buildAbBar('chartP3a', labels, labels.map(l=>data[l]), true);
+})();
+
+// Q2: Defining headline — 2+ responses only, sorted desc
+(function(){
+  const entries = [
+    ['Will any team catch Mercedes the rest of the season?', 3],
+    ['Will Kimi Antonelli out-perform George Russell, leading to a potentially ugly rivalry at Mercedes?', 3],
+    ['Is the new Formula introducing a counter-intuitive & unpredictable approach to motor racing?', 2],
+    ['Will Max Verstappen retire?', 2],
+  ].sort((a,b)=>b[1]-a[1]);
+  buildAbBar('chartP3b', entries.map(e=>e[0]), entries.map(e=>e[1]), true);
+})();
+
+// Q3: Primary motivation — sorted desc, all with responses
+(function(){
+  const entries = [
+    ['The Racing',8],['The Engineering',4],['The Drivers',2],
+    ['The Team(s)',2],['All the above',1],
+  ].sort((a,b)=>b[1]-a[1]);
+  buildAbBar('chartP3c', entries.map(e=>e[0]), entries.map(e=>e[1]), true);
+})();
+
+// Q4: Dream job — sorted desc
+(function(){
+  const entries = [
+    ['Driver',8],['Strategist',4],['PR & Media',2],
+    ['Race Engineer (dedicated to a single driver)',1],['Designer',1],['Significant Other',1],
+  ].sort((a,b)=>b[1]-a[1]);
+  buildAbBar('chartP3d', entries.map(e=>e[0]), entries.map(e=>e[1]), true);
+})();
+
+// Q5: Podcasts — sorted desc
+(function(){
+  const entries = [
+    ['F1 Beyond the Grid',6],['F1 Nation',5],
+    ['P1 with Matt and Tommy',4],['The Race F1',3],['F1 Explains',3],
+    ['The Race Tech Show',1],['F1: Chequered Flag',1],['Up to speed',1],
+  ].sort((a,b)=>b[1]-a[1]);
+  buildAbBar('chartP3e', entries.map(e=>e[0]), entries.map(e=>e[1]), true);
+})();
+
+// Q6: Books — sorted desc, include "Up to Speed" count 1
+(function(){
+  const entries = [
+    ['How to Build a Car -- Adrian Newey',3],
+    ['Surviving to Drive -- Guenther Steiner',2],
+    ['To Hell and Back -- Niki Lauda',1],
+    ['Total Competition: Lessons in Strategy from Formula One -- Ross Brawn',1],
+    ['Performance at the Limit -- Mark Jenkins, Ken Pasternak & Richard West',1],
+    ['The Business of Winning -- Mark Gallagher',1],
+    ['George Russell: A Biography -- James Gray',1],
+    ['The Mechanic: The Secret World of the F1 Pitlane -- Marc "Elvis" Priestley',1],
+    ['Winning Is Not Enough -- Jackie Stewart',1],
+  ].sort((a,b)=>b[1]-a[1]);
+  buildAbBar('chartP3f', entries.map(e=>e[0]), entries.map(e=>e[1]), true);
+})();
+
 </script>
 
 <div id="last-updated-stamp" style="
@@ -2162,7 +2355,7 @@ buildPollTeamBar('chartP2c',
   text-transform:uppercase;
 "></div>
 <script>
-  document.getElementById('last-updated-stamp').textContent = 'Last Updated · 2026-05-03 · R4 Miami GP';
+  document.getElementById('last-updated-stamp').textContent = 'Last Updated · 2026-05-04 · April Break Poll added';
 </script>
 </body>
 </html>
