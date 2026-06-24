@@ -782,6 +782,7 @@ function enterDashboard(){
     <div class="sub-tab active" data-sub="g0">Points by Engine</div>
     <div class="sub-tab" data-sub="g1">Points by Country</div>
     <div class="sub-tab" data-sub="g2">Retirements by Cause</div>
+    <div class="sub-tab" data-sub="g3">PU Failures by Engine</div>
   </div>
   <div class="main">
     <div class="rounds-bar">
@@ -812,6 +813,13 @@ function enterDashboard(){
       <div class="panel-sub">Total DNF + DNS incidents across R1&ndash;R2, grouped by technical cause.</div>
       <div class="chart-wrap bar"><canvas id="chartG2"></canvas></div>
       <div class="note">Power Unit = electrical / battery / hybrid system faults. Mechanical = broader drivetrain / hydraulics / suspension. Accident = crash or spin off. Strategic = team-initiated precautionary retirement.</div>
+    </div>
+    <div class="sub-panel" id="panel-g3">
+      <div class="panel-title">Power Unit Failures &mdash; by Engine Supplier</div>
+      <div class="panel-sub">Terminal PU retirements and non-starts normalised by race entries (cars &times; completed rounds). Excludes accidents, mechanical, and strategic retirements &mdash; Power Unit cause only. Confirmed from race reports R1&ndash;R7.</div>
+      <div class="chart-wrap pie" style="max-width:520px;margin:0 auto;"><canvas id="chartG3"></canvas></div>
+      <div class="pie-legend" id="legendG3"></div>
+      <div class="note">Rate = PU failures &divide; total race entries &times; 100. Race entries = cars &times; completed rounds. Honda and Audi each field 2 cars (1 team); Red Bull Ford 4 cars (2 teams); Ferrari 6 cars (3 teams); Mercedes 8 cars (4 teams incl. McLaren, Williams, Alpine). Ferrari at 0% across 42 entries. Honda highest failure rate despite smallest sample. Mercedes customer PU failures included under Mercedes HPP total.</div>
     </div>
   </div>
 </div>
@@ -1138,8 +1146,8 @@ function enterDashboard(){
       <div class="chart-wrap hbar"><canvas id="chartFG5"></canvas></div>
     </div>
     <div class="sub-panel" id="panel-fg6">
-      <div class="panel-title">All-Time Participation by Event Type</div>
-      <div class="panel-sub">All 142 participants ever in the group, broken down by how they joined or departed. Launch &amp; Added = active; Left = departed voluntarily.</div>
+      <div class="panel-title">Join Event Breakdown</div>
+      <div class="panel-sub">Of the 147 members who have joined the FG Community, this shows the proportion who joined at Launch (February 2026) versus those Added individually afterwards.</div>
       <div class="chart-wrap pie"><canvas id="chartFG6"></canvas></div>
       <div class="pie-legend" id="legendFG6"></div>
     </div>
@@ -1833,6 +1841,90 @@ function buildPie(canvasId,legendId,labels,values,colors,dashFlags){
   buildPie('chartG1','legendG1',sorted,sorted.map(c=>cp[c]),sorted.map(c=>countryColors[c]||'#888888'));
 })();
 
+// ── G3: PU Failures by Engine Supplier (normalised)
+(function(){
+  const ROUNDS_COMPLETED = ROUNDS.length;
+  const PU_DATA = {
+    'Mercedes':    { teams:['Mercedes','McLaren','Williams','Alpine'],   color:'#00D2BE', pu:5 },
+    'Ferrari':     { teams:['Ferrari','Haas F1 Team','Cadillac'],        color:'#E8002D', pu:0 },
+    'Red Bull Ford':{ teams:['Red Bull Racing','Racing Bulls'],          color:'#3671C6', pu:3 },
+    'Honda':       { teams:['Aston Martin'],                             color:'#358C75', pu:2 },
+    'Audi':        { teams:['Audi'],                                     color:'#A8A8A8', pu:0 },
+  };
+  const suppliers = Object.keys(PU_DATA);
+  const rates = suppliers.map(s => {
+    const d = PU_DATA[s];
+    const entries = d.teams.length * 2 * ROUNDS_COMPLETED;
+    return parseFloat(((d.pu / entries) * 100).toFixed(2));
+  });
+  const colors = suppliers.map(s => PU_DATA[s].color);
+
+  // Sort descending by rate, keep Audi/Ferrari visible (show even 0%)
+  const order = suppliers.map((_,i)=>i).sort((a,b) => rates[b]-rates[a]);
+  const sLabels  = order.map(i => suppliers[i]);
+  const sRates   = order.map(i => rates[i]);
+  const sColors  = order.map(i => colors[i]);
+
+  const ctx = document.getElementById('chartG3');
+  if(!ctx) return;
+
+  // Build bgColors — 0% suppliers get very muted slice
+  const bgColors = sColors.map((c,i) => sRates[i] === 0 ? c+'22' : c+'cc');
+
+  const chart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: sLabels,
+      datasets: [{ data: sRates, backgroundColor: bgColors, borderColor: sColors, borderWidth: 2, hoverOffset: 10 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '50%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a14', borderColor: '#242434', borderWidth: 1, padding: 12,
+          titleFont: { family: "'Source Code Pro', monospace", weight: '700', size: 12 },
+          bodyFont:  { family: "'Source Code Pro', monospace", size: 11 },
+          titleColor: '#e4e4f0', bodyColor: '#9090a8',
+          callbacks: {
+            title: items => items[0].label + ' HPP',
+            label: item => {
+              const sup = sLabels[item.dataIndex];
+              const d = PU_DATA[sup];
+              const entries = d.teams.length * 2 * ROUNDS_COMPLETED;
+              const rank = sRates.filter(r => r > item.raw).length + 1;
+              return [
+                '  Teams: ' + d.teams.join(', '),
+                '  Race entries: ' + entries + ' (' + d.teams.length + ' teams × 2 cars × ' + ROUNDS_COMPLETED + ' rounds)',
+                '  PU failures: ' + d.pu,
+                '  Rate: ' + item.raw.toFixed(1) + '% per 100 starts',
+                '  Rank: ' + (item.raw === 0 ? '— (no failures)' : '#' + rank + ' of 5 (1=worst)'),
+              ];
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Custom legend with full detail
+  const wrap = document.getElementById('legendG3');
+  if(!wrap) return;
+  sLabels.forEach((sup, i) => {
+    const d = PU_DATA[sup];
+    const entries = d.teams.length * 2 * ROUNDS_COMPLETED;
+    const rateStr = sRates[i] === 0 ? '0.0%' : sRates[i].toFixed(1) + '%';
+    const el = document.createElement('div');
+    el.className = 'pie-legend-item';
+    el.style.cssText = 'margin-bottom:4px;';
+    el.innerHTML = `<span class="pie-legend-dot" style="background:${sColors[i]};opacity:${sRates[i]===0?0.25:1};flex-shrink:0;"></span>`
+      + `<span style="color:var(--text);font-weight:700;">${sup}</span>`
+      + `<span style="color:var(--muted);margin-left:6px;">${rateStr}/100 &middot; ${d.pu} failures / ${entries} entries</span>`;
+    wrap.appendChild(el);
+  });
+})();
+
+
 // ═══ NAV ═══
 
 document.querySelectorAll('.top-tab').forEach(tab=>{
@@ -1904,17 +1996,13 @@ const retirementLog = [
   {driver:'Perez',     team:'Cadillac',     round:'R5 CAN', cause:'Mechanical'},
   {driver:'Lindblad',  team:'Racing Bulls', round:'R5 CAN', cause:'Mechanical'},
   {driver:'Verstappen', team:'Red Bull Racing', round:'R6 MON', cause:'Power Unit'},
-  {driver:'Leclerc',    team:'Ferrari',       round:'R6 MON', cause:'Accident'},
-  {driver:'Stroll',     team:'Aston Martin',  round:'R6 MON', cause:'Accident'},
-  {driver:'Bearman',    team:'Haas F1 Team',  round:'R6 MON', cause:'Mechanical'},
-  {driver:'Bottas',     team:'Cadillac',      round:'R6 MON', cause:'Mechanical'},
-  {driver:'Verstappen', team:'Red Bull Racing', round:'R6 MON', cause:'Power Unit'},
+  {driver:'Norris',     team:'McLaren',        round:'R6 MON', cause:'Power Unit'},
   {driver:'Leclerc',    team:'Ferrari',       round:'R6 MON', cause:'Accident'},
   {driver:'Stroll',     team:'Aston Martin',  round:'R6 MON', cause:'Accident'},
   {driver:'Bearman',    team:'Haas F1 Team',  round:'R6 MON', cause:'Mechanical'},
   {driver:'Bottas',     team:'Cadillac',      round:'R6 MON', cause:'Mechanical'},
   {driver:'Leclerc',    team:'Ferrari',       round:'R7 BAR', cause:'Mechanical'},
-  {driver:'Antonelli',  team:'Mercedes',      round:'R7 BAR', cause:'Accident'},
+  {driver:'Antonelli',  team:'Mercedes',      round:'R7 BAR', cause:'Power Unit'},
   {driver:'Bearman',    team:'Haas F1 Team',  round:'R7 BAR', cause:'Mechanical'},
   {driver:'Alonso',     team:'Aston Martin',  round:'R7 BAR', cause:'Mechanical'},
   {driver:'Hulkenberg', team:'Audi',          round:'R7 BAR', cause:'Mechanical'},
@@ -2160,7 +2248,8 @@ function penBarOpts(yLabel) {
            ticks:{stepSize:1,font:{family:"'Source Code Pro', monospace",size:11}},
            title:{display:true,text:'# of Penalties',font:{family:"'Source Code Pro', monospace",size:10},color:'#3a3a54'}}
       }
-    }
+    },
+    plugins:[retTotalPlugin(penaltyLog.length)],
   });
   const wrap=document.getElementById('legendD9pen');
   PEN_TYPES.forEach(t=>{
@@ -2263,84 +2352,50 @@ function penBarOpts(yLabel) {
 
 // Cumulative member timeline (Launch/Added=+1, Left=-1)
 const FG_TIMELINE = [
-  {date:'2026-02-18', delta:91},
-  {date:'2026-02-19', delta:11},
-  {date:'2026-02-20', delta:5},
+  {date:'2026-02-18', delta:97},
+  {date:'2026-02-19', delta:10},
+  {date:'2026-02-20', delta:6},
   {date:'2026-02-23', delta:1},
+  {date:'2026-02-27', delta:-1},
   {date:'2026-03-02', delta:1},
-  {date:'2026-03-03', delta:1},
   {date:'2026-03-05', delta:5},
   {date:'2026-03-09', delta:3},
-  {date:'2026-03-11', delta:4},
+  {date:'2026-03-10', delta:-1},
+  {date:'2026-03-11', delta:3},
+  {date:'2026-03-12', delta:-1},
   {date:'2026-03-13', delta:3},
   {date:'2026-03-18', delta:3},
+  {date:'2026-03-20', delta:-1},
   {date:'2026-03-23', delta:3},
   {date:'2026-03-25', delta:4},
+  {date:'2026-03-31', delta:-2},
+  {date:'2026-04-01', delta:1},
+  {date:'2026-04-15', delta:1},
+  {date:'2026-05-29', delta:-1},
+  {date:'2026-06-24', delta:2},
 ];
 
 // Active-only Physical Location counts
-const FG_LOCATION = {
-  'London':16,'Costa Rica':12,'Houston':10,'Chicago':9,'Los Angeles':8,
-  'Denver':8,'New York':7,'Mexico City':7,'San Francisco':5,'Miami':5,
-  'Dallas':5,'Washington D.C.':5,'Boston':5,'Singapore':4,'Austin':3,
-  'Philadelphia':3,'Dubai':3,'Atlanta':2,'Remote - Oregon':2,'Nashville':2,
-  'Seattle':2,'Riyadh':2,'Birmingham':2,'Tokyo':1,'Toronto':1,'Bangkok':1,
-  'Vancouver':1,'Phoenix':1,'Remote - Maryland':1,'Morristown':1,'Munich':1,
-};
+const FG_LOCATION = {'London':17,'Costa Rica':13,'Houston':12,'Denver':9,'Los Angeles':9,'Chicago':9,'Washington D.C.':7,'New York':7,'Mexico City':7,'Boston':7,'San Francisco':5,'Miami':5,'Dallas':5,'Austin':4,'Singapore':4,'Philadelphia':3,'Seattle':3,'Dubai':3,'Atlanta':2,'Remote - Oregon':2,'Nashville':2,'Riyadh':2,'Birmingham':2,'Tokyo':1,'Toronto':1,'Bangkok':1,'Vancouver':1,'Phoenix':1,'Remote - Maryland':1,'Morristown':1,'Munich':1};
 
 // Active-only Region counts
-const FG_REGION = {
-  'South Central':19,'Latin America':19,'Europe':18,'Southwest':15,
-  'Southeast':14,'Northeast':14,'APME':11,'North Central':9,'Firmwide':8,'Northwest':8,
-};
+const FG_REGION = {'South Central':22,'Latin America':20,'Europe':19,'Southeast':16,'Northeast':16,'Southwest':15,'APME':11,'Firmwide':10,'Northwest':9,'North Central':9};
 
 // Active-only Studio counts (full names)
-const FG_STUDIO = {
-  'CH-Work Flex':6,'MI-Miami':5,'LN-Lifestyle 2':5,'MO-Monterrey':5,
-  'HN-Work 4':4,'CR-Lifestyle Flex 1':4,'CR-Cities Flex':4,
-  'FW-Design Technology':3,'NY-Lifestyle 4':3,'HQEU-Admin':3,'DC-Lifestyle 3':3,
-  'FW-LOC Operations':3,'BN-Work Lifestyle Flex':3,'LN-Work Flex 2':3,'LN-Cities Flex 1':3,
-  'DN-Work Flex 1':3,
-  'AT-Work':2,'CR-Admin':2,'PH-Philadelphia':2,'HQAPME-Admin':2,'NA-Nashville':2,
-  'NY-Cities 2':2,'HN-Cities 1':2,'SE-Work':2,'DX-Admin':2,'RH-Lifestyle Flex 1':2,
-  'DN-Work Flex 2':2,'DN-Admin':2,'BH-Cities':2,'HQSC-Admin':2,'LA-Lifestyle 6':2,
-  'FW-Technology':1,'SF-Health 1':1,'TK-Admin':1,'HN-Admin':1,'LA-Lifestyle 4':1,
-  'LA-Lifestyle 5':1,'DL-Work 1':1,'TO-Lifestyle Flex':1,'SI-Lifestyle Flex 1':1,
-  'LA-Lifestyle 7':1,'HN-Lifestyle 3':1,'LA-Flex 1':1,'DC-Lifestyle Flex':1,
-  'BK-Lifestyle Flex 1':1,'VN-Vancouver':1,'AU-Lifestyle 1':1,'AU-Lifestyle 2':1,
-  'CR-Lifestyle Retail 1':1,'PX-Cities Lifestyle':1,'MX-Cities Flex':1,
-  'BN-Cities Health Flex':1,'DL-Cities':1,'SF-Strategy':1,'NY-Climate Action':1,
-  'CR-Lifestyle Flex 2':1,'CH-Work':1,'MX-Flex 1':1,'NJ-Work':1,'DT-Lifestyle Flex':1,
-  'DX-Cities':1,'BN-Admin':1,'DL-Lifestyle 2':1,'NY-Cities 5':1,'FW-Legal':1,
-  'DN-Cities 1':1,'SI-Admin':1,'SF-Cities 1':1,'LN-Lifestyle 1':1,
-  'LN-Strategy Flex':1,'HQNW-Admin':1,'DL-Lifestyle 3':1,'HQSE-Admin':1,
-  'HN-Lifestyle 2':1,'CH-Lifestyle 2':1,'SF-Work 4':1,
-};
+const FG_STUDIO = {'CH-Work Flex':6,'HN-Work 4':5,'MI-Miami':5,'LN-Lifestyle 2':5,'MO-Monterrey':5,'CR-Lifestyle Flex 1':4,'CR-Cities Flex':4,'FW-Design Technology':3,'NY-Lifestyle 4':3,'HQEU-Admin':3,'DC-Lifestyle 3':3,'FW-LOC Operations':3,'BN-Work Lifestyle Flex':3,'LN-Work Flex 2':3,'LN-Cities Flex 1':3,'DN-Work Flex 1':3,'AT-Work':2,'CR-Admin':2,'PH-Philadelphia':2,'LN-Lifestyle 1':2,'HQAPME-Admin':2,'CR-Lifestyle Retail 1':2,'NA-Nashville':2,'NY-Cities 2':2,'HN-Cities 1':2,'SE-Work':2,'DX-Admin':2,'RH-Lifestyle Flex 1':2,'DN-Work Flex 2':2,'BN-Admin':2,'DN-Admin':2,'BH-Cities':2,'HQSE-Admin':2,'HQNW-Admin':2,'HQSC-Admin':2,'LA-Lifestyle 6':2,'FW-Finance':1,'FW-Technology':1,'SF-Health 1':1,'TK-Admin':1,'HN-Admin':1,'LA-Lifestyle 4':1,'LA-Lifestyle 5':1,'DL-Work 1':1,'FW-FW Marketing':1,'TO-Lifestyle Flex':1,'SI-Lifestyle Flex 1':1,'AU-Work 1':1,'LA-Lifestyle 7':1,'HN-Lifestyle 3':1,'LA-Flex 1':1,'DC-Lifestyle Flex':1,'BK-Lifestyle Flex 1':1,'VN-Vancouver':1,'AU-Lifestyle 1':1,'AU-Lifestyle 2':1,'PX-Cities Lifestyle':1,'MX-Cities Flex':1,'BN-Cities Health Flex':1,'DL-Cities':1,'SF-Strategy':1,'NY-Climate Action':1,'CR-Lifestyle Flex 2':1,'CH-Work':1,'MX-Flex 1':1,'NJ-Work':1,'DT-Lifestyle Flex':1,'DX-Cities':1,'DL-Lifestyle 2':1,'NY-Cities 5':1,'HN-Cities 2':1,'FW-Legal':1,'DN-Cities 1':1,'SI-Admin':1,'SF-Cities 1':1,'LN-Strategy Flex':1,'DL-Lifestyle 3':1,'HN-Lifestyle 2':1,'CH-Lifestyle 2':1,'SF-Work 4':1,'BN-Work Flex':1,'DC-Cities':1};
 
-// Active-only Primary Role (top named >=2, rest grouped)
-const FG_ROLE = {
-  'Technical Designer':20,'Architect':17,'Designer':13,'Design Manager':10,
-  'Design Director':7,'Interior Designer':6,'Studio Director':4,
-  'Project Architect':3,'Architectural Assistant':3,'Senior Project Architect':3,
-  'Technical Director':2,'Marketing Specialist':2,'Other':45,
-};
+// Active-only Role counts
+const FG_ROLE = {'Technical Designer':20,'Architect':18,'Designer':14,'Design Manager':10,'Interior Designer':7,'Design Director':7,'Studio Director':5,'Technical Director':4,'Project Architect':3,'Architectural Assistant':3,'Senior Project Architect':3,'Marketing Specialist':2,'Regional IT Director':2,'Design Technology Lead':2,'Treasury Analyst':1,'Director of Infrastructure':1,'Strategy Director':1,'Marketing Coordinator':1,'IT Support Specialist':1,'Human Resources Manager':1,'Strategy Lead':1,'Market Leader - Healthcare':1,'Design Technology Senior Manager':1,'Data Scientist':1,'Creative Asset Manager':1,'Graphic Designer':1,'Sustainability Specialist':1,'Senior Financial Analyst':1,'Regional Practice Area Leader - Critical Facilities':1,'Visualization Specialist':1,'Project Manager':1,'Strategist':1,'Director of Strategic Projects and Initiatives':1,'Intern':1,'Practice Area Leader':1,'Strategic Relationship Director':1,'Senior Sustainability Specialist':1,'Communications Designer':1,'Accounting Manager':1,'Studio Coordinator':1,'Regional Client Relationship Director':1,'Marketing Manager':1,'Senior Strategist':1,'Corporate Counsel':1,'Construction Administrator':1,'Design Technology Specialist':1,'Architectural Designer':1,'Experience Strategist':1,'Data and Automation Leader':1,'Regional Finance Director':1,'Brand Designer':1,'Urban Designer':1,'Managing Director':1,'Regional Design Technology Director':1,'Visualization Artist':1,'Job Captain':1,'Technologist':1,'Project Coordinator':1,'Senior Experience Designer':1,'Experience Design Lead':1,'HR Business Partner':1};
 
 // Active-only Appointment counts
-const FG_APPOINTMENT = {
-  'Untitled':74,'Associate':33,'Senior Associate':17,'Principal':11,
-};
+const FG_APPOINTMENT = {'Untitled':81,'Associate':33,'Senior Associate':22,'Principal':11};
 
-const FG_TOTAL_MEMBERS = 135;
+const FG_TOTAL_MEMBERS = 136;
+const FG_ELIGIBLE = 136;
 
-// All-time EVENT participation (for pie chart — includes all who ever joined)
-const FG_EVENT_PIE = {
-  'Launch':    71,
-  'Added':     64,
-  'Left':       7,
-  'Departed':   1,
-};
+// Event participation breakdown
+const FG_EVENT_PIE = {'Launch':76,'Added':71};
 
-// ── Shared FG color palette (neutral blue-teal range, distinct from F1 palette)
 const FG_COLORS = [
   '#4FC3F7','#29B6F6','#03A9F4','#039BE5','#0288D1',
   '#0277BD','#01579B','#80DEEA','#4DD0E1','#26C6DA',
@@ -2499,7 +2554,7 @@ function buildFgHbar(canvasId, dataObj, cardLabel, countOverride) {
 buildFgHbar('chartFG1', FG_LOCATION,    'LOCATIONS');
 buildFgHbar('chartFG2', FG_REGION,      'REGIONS');
 buildFgHbar('chartFG3', FG_STUDIO,      'STUDIOS');
-buildFgHbar('chartFG4', FG_ROLE, 'ROLES', 57);
+buildFgHbar('chartFG4', FG_ROLE, 'ROLES', 61);
 // Appointment: explicit gradient light→dark blue, Untitled lightest → Principal darkest
 (function(){
   const apptColors = {
@@ -4852,7 +4907,7 @@ function scoreBar(val, min, max, color) {
   text-transform:uppercase;
 "></div>
 <script>
-  document.getElementById('last-updated-stamp').textContent = 'Last Updated · 2026-06-22 · R7 corrected (Gasly Monaco reinstatement + rounds bar fix)';
+  document.getElementById('last-updated-stamp').textContent = 'Last Updated · 2026-06-24 · FG Community updated to 136 members';
 </script>
 </div><!-- /dashboard-root -->
 </body>
