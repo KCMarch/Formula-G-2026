@@ -1205,6 +1205,7 @@ function enterDashboard(){
     <div class="sub-tab" data-sub="p1">Season</div>
     <div class="sub-tab" data-sub="p2">Race 1</div>
     <div class="sub-tab" data-sub="p3">April Break</div>
+    <div class="sub-tab" data-sub="p4">Summer Break</div>
   </div>
   <div class="main">
 
@@ -1297,6 +1298,49 @@ function enterDashboard(){
       <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">6. Which of these books about Formula 1 have you read, and highly recommend?</div>
       <div class="panel-sub">Multi-select. Sorted by most to least responses.</div>
       <div class="chart-wrap hbar"><canvas id="chartP3f"></canvas></div>
+
+    </div>
+
+    <!-- P4: Summer Break Poll -->
+    <div class="sub-panel" id="panel-p4">
+      <div class="panel-title">Summer Break Poll</div>
+      <div class="panel-sub">19 responses &nbsp;&middot;&nbsp; Taken during the summer break between R11 Hungary and R12 Netherlands.</div>
+
+      <div class="panel-title" style="margin-top:22px;font-size:11px;letter-spacing:2px;">1. Which news headline took you most by surprise during the Formula 1 2026 Summer Break?</div>
+      <div class="panel-sub">Single choice. Options with at least one response shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4a"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">2. For you, which of the following is the leading story of the Formula 1 2026 Season so far?</div>
+      <div class="panel-sub">Single choice. Options with at least one response shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4b"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">3. Based on everything that has occurred in the first half, what do you predict will happen in the Drivers Championship at the end of the season?</div>
+      <div class="panel-sub">Single choice. Options with at least one response shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4c"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">4. At which circuits have you attended an F1 race in-person? (F1 2026 calendar only)</div>
+      <div class="panel-sub">Multi-select. 12 of 19 respondents (63.2%) have attended at least one race in person; 7 (36.8%) have never been. Bars show total mentions, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4d"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">5. For those that have attended races in-person, which is your favorite circuit for spectating?</div>
+      <div class="panel-sub">Open-ended, in-person attendees only. 11 of the 12 attendees answered. Responses grouped by circuit; "Montreal" and "Gilles Villeneuve" combined.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4e"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">6. For those that have attended races in-person, what is a single piece of advice you would offer to someone going to their first F1 race?</div>
+      <div class="panel-sub">Open-ended, in-person attendees only. 11 of the 12 attendees answered. Free-text answers were coded into themes by hand; one answer can touch several themes, so bars show mentions (21 across 11 answers).</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4f"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">7. In-person attendance aside, in your opinion which circuit often delivers the most entertaining races? (F1 2026 calendar only)</div>
+      <div class="panel-sub">Single choice. Circuits with at least one vote shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4g"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">8. Who is the most influential person in The F1 Universe (non-driver)?</div>
+      <div class="panel-sub">Single choice. Names with at least one response shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4h"></canvas></div>
+
+      <div class="panel-title" style="margin-top:28px;font-size:11px;letter-spacing:2px;">9. Who is the greatest villain in F1 history?</div>
+      <div class="panel-sub">Single choice. Names with at least one response shown, sorted by most to least.</div>
+      <div class="chart-wrap hbar"><canvas id="chartP4i"></canvas></div>
 
     </div>
 
@@ -2594,6 +2638,17 @@ const FG_TIMELINE = [
   {date:'2026-04-15', delta:1},
   {date:'2026-05-29', delta:-1},
   {date:'2026-06-24', delta:2},
+  {date:'2026-07-14', delta:1},
+  {date:'2026-07-21', delta:1},
+  {date:'2026-07-30', delta:-1},
+  {date:'2026-08-12', delta:-1},
+  {date:'2026-08-17', delta:1},
+  {date:'2026-08-19', delta:1},
+  {date:'2026-08-20', delta:1},
+  {date:'2026-08-21', delta:-1},
+  {date:'2026-08-28', delta:-1},
+  {date:'2026-09-05', delta:-1},
+  {date:'2026-09-24', delta:-1},
 ];
 
 // Active-only Physical Location counts
@@ -2611,7 +2666,7 @@ const FG_ROLE = {'Technical Designer':20,'Architect':18,'Designer':14,'Design Ma
 // Active-only Appointment counts
 const FG_APPOINTMENT = {'Untitled':81,'Associate':33,'Senior Associate':22,'Principal':11};
 
-const FG_TOTAL_MEMBERS = 136;
+const FG_TOTAL_MEMBERS = 135;
 const FG_ELIGIBLE = 136;
 
 // Event participation breakdown
@@ -3223,7 +3278,8 @@ const AB_COLORS = [
 ];
 function abColor(i){ return AB_COLORS[i%AB_COLORS.length]; }
 
-function abBarOpts(yLabel, horizontal){
+function abBarOpts(yLabel, horizontal, n){
+  const N = n || AB_N;
   const base = {
     responsive:true, maintainAspectRatio:false,
     plugins:{
@@ -3234,7 +3290,7 @@ function abBarOpts(yLabel, horizontal){
         bodyFont:{family:"'Source Code Pro', monospace",size:11},
         titleColor:'#e4e4f0',bodyColor:'#9090a8',
         callbacks:{
-          label:item=>`  Responses: ${item.raw} (${(item.raw/AB_N*100).toFixed(1)}%)`
+          label:item=>`  Responses: ${item.raw} (${(item.raw/N*100).toFixed(1)}%)`
         }
       }
     },
@@ -3262,7 +3318,7 @@ function abBarOpts(yLabel, horizontal){
   };
 }
 
-function buildAbBar(canvasId, labels, values, horizontal){
+function buildAbBar(canvasId, labels, values, horizontal, n){
   new Chart(document.getElementById(canvasId).getContext('2d'),{
     type:'bar',
     data:{labels, datasets:[{
@@ -3271,7 +3327,7 @@ function buildAbBar(canvasId, labels, values, horizontal){
       borderColor:labels.map((_,i)=>abColor(i)),
       borderWidth:1, borderRadius:2,
     }]},
-    options: abBarOpts('# of Responses', horizontal),
+    options: abBarOpts('# of Responses', horizontal, n),
   });
 }
 
@@ -3354,6 +3410,24 @@ function buildAbBar(canvasId, labels, values, horizontal){
   ].sort((a,b)=>b[1]-a[1]);
   buildAbBar('chartP3f', entries.map(e=>e[0]), entries.map(e=>e[1]), true);
 })();
+
+// ═══ SUMMER BREAK POLL ═══
+const SB_N = 19;        // all respondents
+const SB_FREE_N = 11;  // Q5/Q6: in-person attendees who answered
+
+function buildSbBar(canvasId, entries, n){
+  buildAbBar(canvasId, entries.map(e=>e[0]), entries.map(e=>e[1]), true, n);
+}
+
+buildSbBar('chartP4a', [["Verstappen re-signs with Red Bull through 2030", 10], ["The Bahrain GP has been relocated to Sepang, Malaysia in October", 7], ["Isack Hadjar fractures his wrist", 2]], SB_N);
+buildSbBar('chartP4b', [["Kimi Antonelli's dominant run", 14], ["Russell outmatched by his rookie teammate", 3], ["Lewis Hamilton's maiden win with Ferrari", 1], ["Verstappen's struggles amid a rebuilding Red Bull", 1]], SB_N);
+buildSbBar('chartP4c', [["Kimi Antonelli's dominance will continue, leading to his first World Championship", 8], ["Lando Norris surges to Top 3", 3], ["Lewis Hamilton will eventually surpass Kimi for his elusive 8th World Championship", 2], ["Max Verstappen will come roaring back to finish Top 3 in the final standings", 2], ["Piastri quietly overtakes his own teammate", 2], ["I honestly have no idea.", 1], ["Leclerc closes on Hamilton and becomes Ferrari's lead title threat", 1]], SB_N);
+buildSbBar('chartP4d', [["I've never been to an F1 race", 7], ["Circuit of the Americas (USA)", 3], ["Miami International Autodrome (USA)", 3], ["Albert Park (Australia)", 2], ["Autodromo Hermanos Rodriguez (Mexico)", 1], ["Barcelona-Catalunya (Spain)", 1], ["Gilles Villeneuve (Canada)", 1], ["Las Vegas Strip (USA)", 1], ["Monza (Italy)", 1], ["Red Bull Ring (Austria)", 1], ["Silverstone (Great Britain)", 1], ["Zandvoort (Netherlands)", 1]], SB_N);
+buildSbBar('chartP4e', [["Gilles Villeneuve (Montreal)", 2], ["Albert Park (Australia)", 1], ["Autodromo Hermanos Rodriguez", 1], ["Barcelona-Catalunya", 1], ["Circuit of the Americas", 1], ["Miami", 1], ["Monza", 1], ["Red Bull Ring (Austria)", 1], ["Yas Marina", 1], ["Zandvoort", 1]], SB_FREE_N);
+buildSbBar('chartP4f', [["Get there early", 4], ["Expect a lot of walking (wear comfy shoes)", 3], ["Explore the venue and the whole weekend's events", 3], ["Prepare for the weather (layers, sunscreen)", 3], ["Bring essentials and comfort gear (chairs, charger, cash)", 2], ["Stay hydrated (bring a water bottle)", 2], ["Buy grandstand tickets", 1], ["Go for the experience (the racing is easier to follow at home)", 1], ["Have the app or headphones to follow the action", 1], ["Plan everything ahead", 1]], SB_FREE_N);
+buildSbBar('chartP4g', [["Interlagos / Autodromo Jose Carlos Pace (Brazil)", 4], ["Las Vegas Strip (USA)", 3], ["Silverstone (Great Britain)", 3], ["Spa-Francorchamps (Belgium)", 2], ["Albert Park (Australia)", 1], ["Bahrain International (Bahrain)", 1], ["Circuit of the Americas (USA)", 1], ["Gilles Villeneuve (Canada)", 1], ["Marina Bay (Singapore)", 1], ["Monza (Italy)", 1], ["Shanghai International (China)", 1]], SB_N);
+buildSbBar('chartP4h', [["Toto Wolff", 12], ["Adrian Newey", 4], ["Guenther Steiner", 1], ["Mohammed Ben Sulayem", 1], ["Stefano Domenicali", 1]], SB_N);
+buildSbBar('chartP4i', [["Bernie Ecclestone", 3], ["Flavio Briatore", 3], ["Jos Verstappen", 3], ["Helmut Marko", 2], ["Mohammed Ben Sulayem", 2], ["Christian Horner", 1], ["Enzo Ferrari", 1], ["Max Verstappen", 1], ["Michael Masi", 1], ["Too hard to decide, next question...", 1], ["Toto Wolff", 1]], SB_N);
 
 } // end initPollCharts()
 
@@ -4743,6 +4817,10 @@ function renderPredStatusBadge(targetId) {
   const top3 = rows.filter(r=>r.predPos<=3); // P1, P2, P3
   const sMin = Math.min(...rows.map(r=>r.combined));
   const sMax = Math.max(...rows.map(r=>r.combined));
+  // Quali scores live on their own scale (z-score-like, can be negative) — scale
+  // against the field's own Quali range, not the Combined range.
+  const qMin = Math.min(...rows.map(r=>r.quali));
+  const qMax = Math.max(...rows.map(r=>r.quali));
 
   // Layout order: P2 left, P1 center, P3 right
   const podiumOrder  = [1, 0, 2];
@@ -4750,8 +4828,23 @@ function renderPredStatusBadge(targetId) {
   const medalEmoji   = ['🥈','🥇','🥉'];
   const posLabel     = ['P2','P1','P3'];
 
+  // Quali bar: QualiScore only exists once real qualifying data is in. Pre-quali the
+  // pipeline emits 0.0 for everyone, which is "not computed", not a real score.
+  function qualiBar(r, min, max, color) {
+    if (r.preQuali) {
+      return `<div style="margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:9px;color:var(--muted);letter-spacing:0.5px;">Quali</span>
+        <span style="font-size:9px;color:var(--muted);" title="Available after qualifying">—</span>
+      </div>
+      <div style="height:5px;background:var(--grid);border-radius:3px;"></div>
+    </div>`;
+    }
+    return bigBar(r.quali, min, max, color, 'Quali', false);
+  }
+
   function bigBar(val, min, max, color, label, big) {
-    const pct = Math.max(0, Math.min(100, ((val-min)/(max-min))*100));
+    const pct = Math.max(0, Math.min(100, ((val-min)/((max-min)||1))*100));
     const h   = big ? '8px' : '5px';
     const fs  = big ? '11px' : '9px';
     const fw  = big ? '700' : '400';
@@ -4788,7 +4881,7 @@ function renderPredStatusBadge(targetId) {
           ${bigBar(r.form,     sMin, sMax, c, 'Form',     false)}
           ${bigBar(r.circuit,  sMin, sMax, c, 'Circuit Fit', false)}
           ${bigBar(r.reliability, sMin, sMax, c, 'Reliability', false)}
-          ${bigBar(r.quali,    sMin, sMax, c, 'Quali',     false)}
+          ${qualiBar(r, qMin, qMax, c)}
         </div>
       </div>`;
     }).join('')}
@@ -4814,8 +4907,15 @@ function renderPredStatusBadge(targetId) {
   const qMin = Math.min(...rows.map(r=>r.quali));
   const qMax = Math.max(...rows.map(r=>r.quali));
 
+  function miniBarNA() {
+    return `<div style="display:flex;align-items:center;gap:5px;" title="Available after qualifying">
+      <div style="flex:1;height:5px;background:var(--grid);border-radius:2px;min-width:60px;"></div>
+      <span style="font-size:9px;color:var(--muted);min-width:38px;text-align:right;">—</span>
+    </div>`;
+  }
+
   function miniBar(val, min, max, color) {
-    const pct = Math.max(0, Math.min(100, ((val-min)/(max-min))*100));
+    const pct = Math.max(0, Math.min(100, ((val-min)/((max-min)||1))*100));
     return `<div style="display:flex;align-items:center;gap:5px;">
       <div style="flex:1;height:5px;background:var(--grid);border-radius:2px;min-width:60px;">
         <div style="width:${pct.toFixed(1)}%;height:100%;background:${color};border-radius:2px;"></div>
@@ -4862,7 +4962,7 @@ function renderPredStatusBadge(targetId) {
       <td style="min-width:100px;">${miniBar(r.form, fMin, fMax, c)}</td>
       <td style="min-width:100px;">${miniBar(r.circuit, sMin, sMax, c)}</td>
       <td style="min-width:100px;">${miniBar(r.reliability, rMin, rMax, c)}</td>
-      <td style="min-width:100px;">${miniBar(r.quali, qMin, qMax, c)}</td>
+      <td style="min-width:100px;">${r.preQuali ? miniBarNA() : miniBar(r.quali, qMin, qMax, c)}</td>
       <td style="text-align:center;font-weight:700;color:${r.expPts>0?'var(--accent2)':'var(--muted)'}">${r.expPts||'—'}</td>
       <td style="text-align:center;font-weight:600;color:${confColor};">${r.confidence}%</td>
     </tr>`;
